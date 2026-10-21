@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RootNamespace>DexTor.Provisioner</RootNamespace>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\\DexTor.Domain\\DexTor.Domain.csproj" />
+    <ProjectReference Include="..\\DexTor.Contracts\\DexTor.Contracts.csproj" />
+    <ProjectReference Include="..\\DexTor.Platform.Windows\\DexTor.Platform.Windows.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="DiscUtils.Core" />
+    <PackageReference Include="DiscUtils.Iso9660" />
+    <PackageReference Include="DiscUtils.Fat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="DexTor.Provisioner.Tests" />
+  </ItemGroup>
+</Project>

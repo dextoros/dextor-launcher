@@ -1,0 +1,75 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!-- WixStdBA strings for DexTor OS Setup, pl-pl. Loaded by the BA for Windows UI language 1045; English is thm.en-us.wxl. -->
+<WixLocalization Culture="pl-pl" Language="1045" xmlns="http://wixtoolset.org/schemas/v4/wxl">
+  <String Id="Caption" Value="Instalator [WixBundleName]" />
+  <String Id="Title" Value="[WixBundleName]" />
+  <String Id="CheckingForUpdatesLabel" Value="Sprawdzanie aktualizacji" />
+  <String Id="UpdateButton" Value="&amp;Aktualizuj do wersji [WixStdBAUpdateAvailable]" />
+  <String Id="InstallHeader" Value="Witamy" />
+  <String Id="InstallMessage" Value="Program zainstaluje DexTor Launcher - aplikację, która utworzy pendrive z DexTor OS i go uruchomi. Sam system nie jest instalowany na tym komputerze." />
+  <String Id="InstallMessageOptions" Value="Instalator zainstaluje [WixBundleName] na tym komputerze. Kliknij przycisk Instaluj, aby kontynuować, Opcje, aby skonfigurować instalację, lub Anuluj, aby zakończyć." />
+  <String Id="InstallVersion" Value="Wersja [WixBundleVersion]" />
+  <String Id="ConfirmCancelMessage" Value="Czy na pewno chcesz anulować instalację?" />
+  <String Id="DesktopShortcut" Value="Utwórz skrót na pulpicie" />
+  <String Id="BadgeBeta" Value="BETA" />
+  <String Id="ProgressMessage" Value="Nie zamykaj tego okna do zakończenia instalacji." />
+  <String Id="ProgressWorking" Value="Instalowanie..." />
+  <String Id="ExecuteUpgradeRelatedBundleMessage" Value="Poprzednia wersja" />
+  <String Id="HelpHeader" Value="Pomoc instalatora" />
+  <String Id="HelpText" Value="/install | /repair | /uninstall | /layout [folder] - instaluje, naprawia, odinstalowuje lub&#xA;   tworzy pełną lokalną kopię pakietu w folderze. Domyślnie wykonywana jest instalacja.&#xA;&#xA;/passive | /quiet - wyświetla minimalny interfejs bez pytań lub nie wyświetla&#xA;   interfejsu wcale. Domyślnie wyświetlany jest interfejs i wszystkie pytania.&#xA;&#xA;/norestart - pomija ponowne uruchamianie. Domyślnie przed ponownym uruchomieniem wyświetlane jest pytanie.&#xA;/log log.txt - zapisuje dziennik do wskazanego pliku. Domyślnie dziennik jest tworzony w %TEMP%." />
+  <String Id="HelpCloseButton" Value="&amp;Zamknij" />
+  <String Id="InstallLicenseLinkText" Value="[WixBundleName] &lt;a href=&quot;#&quot;&gt;postanowienia licencyjne&lt;/a&gt;." />
+  <String Id="InstallAcceptCheckbox" Value="&amp;Akceptuję postanowienia licencyjne" />
+  <String Id="InstallOptionsButton" Value="&amp;Opcje" />
+  <String Id="InstallInstallButton" Value="&amp;Instaluj" />
+  <String Id="InstallCancelButton" Value="&amp;Anuluj" />
+  <String Id="OptionsHeader" Value="Opcje instalacji" />
+  <String Id="OptionsLocationLabel" Value="Folder instalacji:" />
+  <String Id="OptionsBrowseButton" Value="&amp;Przeglądaj" />
+  <String Id="OptionsOkButton" Value="&amp;OK" />
+  <String Id="OptionsCancelButton" Value="&amp;Anuluj" />
+  <String Id="ProgressHeader" Value="Instalacja" />
+  <String Id="ProgressLabel" Value="Przetwarzanie:" />
+  <String Id="OverallProgressPackageText" Value="Inicjowanie..." />
+  <String Id="ProgressCancelButton" Value="&amp;Anuluj" />
+  <String Id="ModifyHeader" Value="Modyfikowanie instalacji" />
+  <String Id="ModifyRepairButton" Value="&amp;Napraw" />
+  <String Id="ModifyUninstallButton" Value="&amp;Odinstaluj" />
+  <String Id="ModifyCancelButton" Value="&amp;Anuluj" />
+  <String Id="SuccessHeader" Value="Instalacja zakończona" />
+  <String Id="SuccessCacheHeader" Value="Buforowanie zakończone" />
+  <String Id="SuccessInstallHeader" Value="Instalacja zakończona" />
+  <String Id="SuccessLayoutHeader" Value="Utworzono kopię pakietu" />
+  <String Id="SuccessModifyHeader" Value="Modyfikacja zakończona" />
+  <String Id="SuccessRepairHeader" Value="Naprawa zakończona" />
+  <String Id="SuccessUninstallHeader" Value="Dezinstalacja zakończona" />
+  <String Id="SuccessUnsafeUninstallHeader" Value="Dezinstalacja zakończona" />
+  <String Id="SuccessLaunchButton" Value="▶  &amp;Uruchom" />
+  <String Id="SuccessRestartText" Value="Przed użyciem oprogramowania uruchom ponownie komputer." />
+  <String Id="SuccessUninstallRestartText" Value="Uruchom ponownie komputer, aby zakończyć dezinstalację." />
+  <String Id="SuccessRestartButton" Value="&amp;Uruchom ponownie" />
+  <String Id="SuccessCloseButton" Value="&amp;Zamknij" />
+  <String Id="FailureHeader" Value="Instalacja nie powiodła się" />
+  <String Id="FailureCacheHeader" Value="Buforowanie nie powiodło się" />
+  <String Id="FailureInstallHeader" Value="Instalacja nie powiodła się" />
+  <String Id="FailureLayoutHeader" Value="Nie udało się utworzyć kopii pakietu" />
+  <String Id="FailureModifyHeader" Value="Modyfikacja nie powiodła się" />
+  <String Id="FailureRepairHeader" Value="Naprawa nie powiodła się" />
+  <String Id="FailureUninstallHeader" Value="Dezinstalacja nie powiodła się" />
+  <String Id="FailureUnsafeUninstallHeader" Value="Dezinstalacja nie powiodła się" />
+  <String Id="FailureHyperlinkLogText" Value="Instalacja nie powiodła się. Usuń problem i ponów instalację. Więcej informacji zawiera &lt;a href=&quot;#&quot;&gt;plik dziennika&lt;/a&gt;." />
+  <String Id="FailureRestartText" Value="Uruchom ponownie komputer, aby zakończyć wycofywanie zmian." />
+  <String Id="FailureRestartButton" Value="&amp;Uruchom ponownie" />
+  <String Id="FailureCloseButton" Value="&amp;Zamknij" />
+  <String Id="FilesInUseTitle" Value="Pliki w użyciu" />
+  <String Id="FilesInUseLabel" Value="Następujące aplikacje używają plików, które muszą zostać zaktualizowane:" />
+  <String Id="FilesInUseNetfxCloseRadioButton" Value="Zamknij &amp;aplikacje." />
+  <String Id="FilesInUseCloseRadioButton" Value="Zamknij &amp;aplikacje i spróbuj uruchomić je ponownie." />
+  <String Id="FilesInUseDontCloseRadioButton" Value="&amp;Nie zamykaj aplikacji. Wymagane będzie ponowne uruchomienie." />
+  <String Id="FilesInUseRetryButton" Value="&amp;Ponów" />
+  <String Id="FilesInUseIgnoreButton" Value="&amp;Ignoruj" />
+  <String Id="FilesInUseExitButton" Value="&amp;Zakończ" />
+  <String Id="SuccessInstalledText" Value="DexTor Launcher jest zainstalowany." />
+  <String Id="SuccessInstalledShortcutText" Value="DexTor Launcher jest zainstalowany. Skrót dodano na pulpit." />
+  <String Id="SuccessReadyText" Value="Wszystko gotowe. Uruchom launcher, aby utworzyć pendrive z DexTor OS." />
+</WixLocalization>

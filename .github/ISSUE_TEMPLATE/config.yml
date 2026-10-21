@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/dextoros/dextor-launcher/security/advisories/new
+    about: Please report security problems privately, not in a public issue.
+  - name: DexTor OS website
+    url: https://dextoros.com
+    about: Downloads, news and general information about DexTor OS.

@@ -1,0 +1,75 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!-- WixStdBA strings for DexTor OS Setup, tr-tr. Loaded by the BA for Windows UI language 1055; English is thm.en-us.wxl. -->
+<WixLocalization Culture="tr-tr" Language="1055" xmlns="http://wixtoolset.org/schemas/v4/wxl">
+  <String Id="Caption" Value="[WixBundleName] Kurulumu" />
+  <String Id="Title" Value="[WixBundleName]" />
+  <String Id="CheckingForUpdatesLabel" Value="Güncelleştirmeler denetleniyor" />
+  <String Id="UpdateButton" Value="[WixStdBAUpdateAvailable] sürümüne &amp;güncelleştir" />
+  <String Id="InstallHeader" Value="Hoş geldiniz" />
+  <String Id="InstallMessage" Value="Kurulum, DexTor OS yüklü bir USB bellek oluşturan ve onu başlatan DexTor Launcher uygulamasını yükler. DexTor OS bu bilgisayara kurulmaz." />
+  <String Id="InstallMessageOptions" Value="Kurulum, [WixBundleName] uygulamasını bu bilgisayara yükleyecek. Devam etmek için Yükle&apos;ye, yükleme seçeneklerini ayarlamak için Seçenekler&apos;e, çıkmak için İptal&apos;e tıklayın." />
+  <String Id="InstallVersion" Value="Sürüm [WixBundleVersion]" />
+  <String Id="ConfirmCancelMessage" Value="Kurulumu iptal etmek istediğinizden emin misiniz?" />
+  <String Id="DesktopShortcut" Value="Masaüstünde kısayol oluştur" />
+  <String Id="BadgeBeta" Value="BETA" />
+  <String Id="ProgressMessage" Value="Kurulum tamamlanana kadar bu pencereyi açık tutun." />
+  <String Id="ProgressWorking" Value="Yükleniyor..." />
+  <String Id="ExecuteUpgradeRelatedBundleMessage" Value="Önceki sürüm" />
+  <String Id="HelpHeader" Value="Kurulum Yardımı" />
+  <String Id="HelpText" Value="/install | /repair | /uninstall | /layout [klasör] - yükler, onarır, kaldırır veya&#xA;   paketin tam yerel kopyasını klasörde oluşturur. Varsayılan işlem yüklemedir.&#xA;&#xA;/passive | /quiet - soru sormadan en az arabirimi gösterir veya hiç arabirim&#xA;   göstermez. Varsayılan olarak arabirim ve tüm sorular gösterilir.&#xA;&#xA;/norestart - yeniden başlatmayı engeller. Varsayılan olarak yeniden başlatmadan önce sorulur.&#xA;/log log.txt - günlüğü belirtilen dosyaya yazar. Varsayılan olarak günlük %TEMP% içinde oluşturulur." />
+  <String Id="HelpCloseButton" Value="&amp;Kapat" />
+  <String Id="InstallLicenseLinkText" Value="[WixBundleName] &lt;a href=&quot;#&quot;&gt;lisans koşulları&lt;/a&gt;." />
+  <String Id="InstallAcceptCheckbox" Value="Lisans koşullarını &amp;kabul ediyorum" />
+  <String Id="InstallOptionsButton" Value="&amp;Seçenekler" />
+  <String Id="InstallInstallButton" Value="&amp;Yükle" />
+  <String Id="InstallCancelButton" Value="&amp;İptal" />
+  <String Id="OptionsHeader" Value="Kurulum Seçenekleri" />
+  <String Id="OptionsLocationLabel" Value="Yükleme klasörü:" />
+  <String Id="OptionsBrowseButton" Value="&amp;Gözat" />
+  <String Id="OptionsOkButton" Value="&amp;Tamam" />
+  <String Id="OptionsCancelButton" Value="&amp;İptal" />
+  <String Id="ProgressHeader" Value="Kurulum" />
+  <String Id="ProgressLabel" Value="İşleniyor:" />
+  <String Id="OverallProgressPackageText" Value="Başlatılıyor..." />
+  <String Id="ProgressCancelButton" Value="&amp;İptal" />
+  <String Id="ModifyHeader" Value="Kurulumu Değiştir" />
+  <String Id="ModifyRepairButton" Value="&amp;Onar" />
+  <String Id="ModifyUninstallButton" Value="&amp;Kaldır" />
+  <String Id="ModifyCancelButton" Value="&amp;İptal" />
+  <String Id="SuccessHeader" Value="Kurulum tamamlandı" />
+  <String Id="SuccessCacheHeader" Value="Önbelleğe alma tamamlandı" />
+  <String Id="SuccessInstallHeader" Value="Yükleme tamamlandı" />
+  <String Id="SuccessLayoutHeader" Value="Paket kopyası oluşturuldu" />
+  <String Id="SuccessModifyHeader" Value="Değişiklik tamamlandı" />
+  <String Id="SuccessRepairHeader" Value="Onarım tamamlandı" />
+  <String Id="SuccessUninstallHeader" Value="Kaldırma tamamlandı" />
+  <String Id="SuccessUnsafeUninstallHeader" Value="Kaldırma tamamlandı" />
+  <String Id="SuccessLaunchButton" Value="▶  &amp;Başlat" />
+  <String Id="SuccessRestartText" Value="Yazılımı kullanmadan önce bilgisayarı yeniden başlatmanız gerekir." />
+  <String Id="SuccessUninstallRestartText" Value="Kaldırma işlemini tamamlamak için bilgisayarı yeniden başlatmanız gerekir." />
+  <String Id="SuccessRestartButton" Value="&amp;Yeniden başlat" />
+  <String Id="SuccessCloseButton" Value="&amp;Kapat" />
+  <String Id="FailureHeader" Value="Kurulum başarısız oldu" />
+  <String Id="FailureCacheHeader" Value="Önbelleğe alma başarısız oldu" />
+  <String Id="FailureInstallHeader" Value="Yükleme başarısız oldu" />
+  <String Id="FailureLayoutHeader" Value="Paket kopyası oluşturulamadı" />
+  <String Id="FailureModifyHeader" Value="Değişiklik başarısız oldu" />
+  <String Id="FailureRepairHeader" Value="Onarım başarısız oldu" />
+  <String Id="FailureUninstallHeader" Value="Kaldırma başarısız oldu" />
+  <String Id="FailureUnsafeUninstallHeader" Value="Kaldırma başarısız oldu" />
+  <String Id="FailureHyperlinkLogText" Value="Kurulum başarısız oldu. Sorunu giderip kurulumu yeniden deneyin. Ayrıntılar için &lt;a href=&quot;#&quot;&gt;günlük dosyasına&lt;/a&gt; bakın." />
+  <String Id="FailureRestartText" Value="Geri alma işlemini tamamlamak için bilgisayarı yeniden başlatmanız gerekir." />
+  <String Id="FailureRestartButton" Value="&amp;Yeniden başlat" />
+  <String Id="FailureCloseButton" Value="&amp;Kapat" />
+  <String Id="FilesInUseTitle" Value="Kullanımdaki Dosyalar" />
+  <String Id="FilesInUseLabel" Value="Aşağıdaki uygulamalar güncelleştirilmesi gereken dosyaları kullanıyor:" />
+  <String Id="FilesInUseNetfxCloseRadioButton" Value="&amp;Uygulamaları kapat." />
+  <String Id="FilesInUseCloseRadioButton" Value="&amp;Uygulamaları kapat ve yeniden başlatmayı dene." />
+  <String Id="FilesInUseDontCloseRadioButton" Value="Uygulamaları &amp;kapatma. Yeniden başlatma gerekecek." />
+  <String Id="FilesInUseRetryButton" Value="&amp;Yeniden dene" />
+  <String Id="FilesInUseIgnoreButton" Value="Yo&amp;k say" />
+  <String Id="FilesInUseExitButton" Value="&amp;Çıkış" />
+  <String Id="SuccessInstalledText" Value="DexTor Launcher yüklendi." />
+  <String Id="SuccessInstalledShortcutText" Value="DexTor Launcher yüklendi. Masaüstüne bir kısayol eklendi." />
+  <String Id="SuccessReadyText" Value="Her şey hazır. DexTor OS yüklü bir USB bellek oluşturmak için launcher’ı başlatın." />
+</WixLocalization>

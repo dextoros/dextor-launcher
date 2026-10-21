@@ -1,0 +1,70 @@
+<Wix
+    xmlns="http://wixtoolset.org/schemas/v4/wxs"
+    xmlns:bal="http://wixtoolset.org/schemas/v4/wxs/bal">
+  <Bundle
+      Name="DexTor OS"
+      Manufacturer="DexTor OS"
+      Version="$(ProductVersion)"
+      UpgradeCode="{24361B40-0751-42E7-901D-6E5FEF715588}"
+      Copyright="Copyright © 2026 DexTor OS"
+      AboutUrl="https://dextoros.com"
+      IconSourceFile="$(sys.SOURCEFILEDIR)..\..\docs\favicon.ico"
+      Compressed="yes">
+
+    <Variable Name="AddDesktopShortcutCheckbox" Type="numeric" Value="1" />
+
+    <BootstrapperApplication>
+      <bal:WixStandardBootstrapperApplication
+          Theme="hyperlinkLargeLicense"
+          LicenseUrl=""
+          LogoFile="$(sys.SOURCEFILEDIR)..\..\docs\favicon.png"
+          ThemeFile="$(sys.SOURCEFILEDIR)DexTorTheme.xml"
+          LocalizationFile="$(sys.SOURCEFILEDIR)Localization\thm.en-us.wxl"
+          LaunchTarget="[ProgramFiles64Folder]DexTor OS\DexTor.Launcher.exe"
+          LaunchWorkingFolder="[ProgramFiles64Folder]DexTor OS"
+          ShowVersion="yes"
+          SuppressOptionsUI="yes" />
+      <Payload SourceFile="$(sys.SOURCEFILEDIR)Assets\primary-normal.png" Name="Assets\primary-normal.png" />
+      <Payload SourceFile="$(sys.SOURCEFILEDIR)Assets\primary-hover.png" Name="Assets\primary-hover.png" />
+      <Payload SourceFile="$(sys.SOURCEFILEDIR)Assets\primary-pressed.png" Name="Assets\primary-pressed.png" />
+      <Payload SourceFile="$(sys.SOURCEFILEDIR)Assets\primary-focus.png" Name="Assets\primary-focus.png" />
+      <Payload SourceFile="$(sys.SOURCEFILEDIR)Assets\secondary-normal.png" Name="Assets\secondary-normal.png" />
+      <Payload SourceFile="$(sys.SOURCEFILEDIR)Assets\secondary-hover.png" Name="Assets\secondary-hover.png" />
+      <Payload SourceFile="$(sys.SOURCEFILEDIR)Assets\secondary-pressed.png" Name="Assets\secondary-pressed.png" />
+      <Payload SourceFile="$(sys.SOURCEFILEDIR)Assets\secondary-focus.png" Name="Assets\secondary-focus.png" />
+      <Payload SourceFile="$(sys.SOURCEFILEDIR)Assets\progress.png" Name="Assets\progress.png" />
+      <Payload SourceFile="$(sys.SOURCEFILEDIR)Assets\disabled.png" Name="Assets\disabled.png" />
+      <Payload SourceFile="$(sys.SOURCEFILEDIR)Assets\close-normal.png" Name="Assets\close-normal.png" />
+      <Payload SourceFile="$(sys.SOURCEFILEDIR)Assets\close-hover.png" Name="Assets\close-hover.png" />
+      <Payload SourceFile="$(sys.SOURCEFILEDIR)Assets\wordmark.png" Name="Assets\wordmark.png" />
+      <Payload SourceFile="$(sys.SOURCEFILEDIR)Assets\badge-left.png" Name="Assets\badge-left.png" />
+      <Payload SourceFile="$(sys.SOURCEFILEDIR)Assets\badge-right.png" Name="Assets\badge-right.png" />
+      <Payload SourceFile="$(sys.SOURCEFILEDIR)Assets\badge-line.png" Name="Assets\badge-line.png" />
+      <Payload SourceFile="$(sys.SOURCEFILEDIR)Assets\success-block.png" Name="Assets\success-block.png" />
+      <!-- The BA loads <Windows UI language>\thm.wxl when it is there, English otherwise.
+           The wizard it launches takes the same Windows language, so both speak it. -->
+      <Payload SourceFile="$(sys.SOURCEFILEDIR)Localization\thm.ru-ru.wxl" Name="1049\thm.wxl" />
+      <Payload SourceFile="$(sys.SOURCEFILEDIR)Localization\thm.uk-ua.wxl" Name="1058\thm.wxl" />
+      <Payload SourceFile="$(sys.SOURCEFILEDIR)Localization\thm.de-de.wxl" Name="1031\thm.wxl" />
+      <Payload SourceFile="$(sys.SOURCEFILEDIR)Localization\thm.es-es.wxl" Name="3082\thm.wxl" />
+      <Payload Id="SpanishTraditionalSortStrings" SourceFile="$(sys.SOURCEFILEDIR)Localization\thm.es-es.wxl" Name="1034\thm.wxl" />
+      <Payload SourceFile="$(sys.SOURCEFILEDIR)Localization\thm.fr-fr.wxl" Name="1036\thm.wxl" />
+      <Payload SourceFile="$(sys.SOURCEFILEDIR)Localization\thm.pt-br.wxl" Name="1046\thm.wxl" />
+      <Payload SourceFile="$(sys.SOURCEFILEDIR)Localization\thm.pl-pl.wxl" Name="1045\thm.wxl" />
+      <Payload SourceFile="$(sys.SOURCEFILEDIR)Localization\thm.tr-tr.wxl" Name="1055\thm.wxl" />
+      <Payload SourceFile="$(sys.SOURCEFILEDIR)Localization\thm.zh-cn.wxl" Name="2052\thm.wxl" />
+      <Payload SourceFile="$(sys.SOURCEFILEDIR)..\..\docs\favicon.ico" Name="app.ico" />
+    </BootstrapperApplication>
+
+    <Chain>
+      <MsiPackage
+          Id="DexTorMsi"
+          SourceFile="$(MsiPath)"
+          Compressed="yes"
+          Vital="yes"
+          Visible="no">
+        <MsiProperty Name="ADDDESKTOPSHORTCUT" Value="[AddDesktopShortcutCheckbox]" />
+      </MsiPackage>
+    </Chain>
+  </Bundle>
+</Wix>

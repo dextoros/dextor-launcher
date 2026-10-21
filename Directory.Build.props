@@ -1,0 +1,27 @@
+<Project>
+  <PropertyGroup>
+    <LangVersion>14</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AnalysisLevel>preview</AnalysisLevel>
+    <Deterministic>true</Deterministic>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <VersionPrefix>0.1.0</VersionPrefix>
+    <AssemblyVersion>$(VersionPrefix).0</AssemblyVersion>
+    <FileVersion>$(VersionPrefix).0</FileVersion>
+    <Company>DexTor OS</Company>
+    <Product>DexTor OS</Product>
+    <Authors>DexTor OS</Authors>
+    <Copyright>Copyright © 2026 DexTor OS</Copyright>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+  </PropertyGroup>
+  <!-- What the guest is told it runs under: "test" until a SignedRelease build says "release". -->
+  <PropertyGroup>
+    <DexTorChannel Condition="'$(DexTorChannel)' == ''">test</DexTorChannel>
+  </PropertyGroup>
+  <ItemGroup>
+    <AssemblyMetadata Include="DexTorChannel" Value="$(DexTorChannel)" />
+  </ItemGroup>
+</Project>

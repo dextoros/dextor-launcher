@@ -1,0 +1,63 @@
+name: Bug report
+description: Something does not work as it should.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for the report. Please search the existing issues first.
+        For security problems, use [private reporting](https://github.com/dextoros/dextor-launcher/security/advisories/new) instead.
+  - type: input
+    id: version
+    attributes:
+      label: Launcher version
+      description: Shown at the bottom of the wizard window, for example v0.1.34.
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      description: "Run `winver`, for example Windows 11 24H2 (26100.4061)."
+    validations:
+      required: true
+  - type: dropdown
+    id: step
+    attributes:
+      label: Where did it happen?
+      options:
+        - Checking this PC
+        - Downloading the image
+        - Choosing a USB drive
+        - Creating the USB drive
+        - Starting DexTor OS inside Windows
+        - Booting DexTor OS from the USB drive
+        - Installer or update
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what happened instead. Screenshots help.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. ...
+        2. ...
+  - type: input
+    id: usb
+    attributes:
+      label: USB drive
+      description: Model and size, and whether it was plugged in directly or through a hub.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Diagnostic report or log
+      description: Attach or paste it. Please remove anything personal first.
+      render: text

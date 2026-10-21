@@ -1,0 +1,75 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!-- WixStdBA strings for DexTor OS Setup, uk-ua. Loaded by the BA for Windows UI language 1058; English is thm.en-us.wxl. -->
+<WixLocalization Culture="uk-ua" Language="1058" xmlns="http://wixtoolset.org/schemas/v4/wxl">
+  <String Id="Caption" Value="Встановлення [WixBundleName]" />
+  <String Id="Title" Value="[WixBundleName]" />
+  <String Id="CheckingForUpdatesLabel" Value="Перевірка оновлень" />
+  <String Id="UpdateButton" Value="&amp;Оновити до версії [WixStdBAUpdateAvailable]" />
+  <String Id="InstallHeader" Value="Ласкаво просимо" />
+  <String Id="InstallMessage" Value="Програма встановить DexTor Launcher — застосунок, який створить флешку з DexTor OS і запустить її. Саму систему на цей комп’ютер не встановлено." />
+  <String Id="InstallMessageOptions" Value="Програма встановить [WixBundleName] на цей комп’ютер. Натисніть «Встановити», щоб продовжити, «Параметри», щоб налаштувати встановлення, або «Скасувати», щоб вийти." />
+  <String Id="InstallVersion" Value="Версія [WixBundleVersion]" />
+  <String Id="ConfirmCancelMessage" Value="Скасувати встановлення?" />
+  <String Id="DesktopShortcut" Value="Створити ярлик на робочому столі" />
+  <String Id="BadgeBeta" Value="BETA" />
+  <String Id="ProgressMessage" Value="Не закривайте вікно до завершення встановлення." />
+  <String Id="ProgressWorking" Value="Встановлення..." />
+  <String Id="ExecuteUpgradeRelatedBundleMessage" Value="Попередня версія" />
+  <String Id="HelpHeader" Value="Довідка зі встановлення" />
+  <String Id="HelpText" Value="/install | /repair | /uninstall | /layout [тека] — встановлення, відновлення, видалення&#xA;   або повна локальна копія пакета в теці. Типово — встановлення.&#xA;&#xA;/passive | /quiet — мінімальний інтерфейс без запитань або без інтерфейсу&#xA;   взагалі. Типово показуються інтерфейс і всі запитання.&#xA;&#xA;/norestart — не перезавантажувати комп’ютер. Типово перед перезавантаженням ставиться запитання.&#xA;/log log.txt — журнал у вказаний файл. Типово журнал створюється в %TEMP%." />
+  <String Id="HelpCloseButton" Value="&amp;Закрити" />
+  <String Id="InstallLicenseLinkText" Value="[WixBundleName] &lt;a href=&quot;#&quot;&gt;умови ліцензії&lt;/a&gt;." />
+  <String Id="InstallAcceptCheckbox" Value="Я &amp;приймаю умови ліцензії" />
+  <String Id="InstallOptionsButton" Value="&amp;Параметри" />
+  <String Id="InstallInstallButton" Value="&amp;Встановити" />
+  <String Id="InstallCancelButton" Value="&amp;Скасувати" />
+  <String Id="OptionsHeader" Value="Параметри встановлення" />
+  <String Id="OptionsLocationLabel" Value="Тека встановлення:" />
+  <String Id="OptionsBrowseButton" Value="&amp;Огляд" />
+  <String Id="OptionsOkButton" Value="&amp;ОК" />
+  <String Id="OptionsCancelButton" Value="&amp;Скасувати" />
+  <String Id="ProgressHeader" Value="Встановлення" />
+  <String Id="ProgressLabel" Value="Виконується:" />
+  <String Id="OverallProgressPackageText" Value="Підготовка..." />
+  <String Id="ProgressCancelButton" Value="&amp;Скасувати" />
+  <String Id="ModifyHeader" Value="Зміна встановлення" />
+  <String Id="ModifyRepairButton" Value="&amp;Відновити" />
+  <String Id="ModifyUninstallButton" Value="&amp;Видалити" />
+  <String Id="ModifyCancelButton" Value="&amp;Скасувати" />
+  <String Id="SuccessHeader" Value="Встановлення завершено" />
+  <String Id="SuccessCacheHeader" Value="Кешування завершено" />
+  <String Id="SuccessInstallHeader" Value="Встановлення завершено" />
+  <String Id="SuccessLayoutHeader" Value="Копію пакета створено" />
+  <String Id="SuccessModifyHeader" Value="Зміну завершено" />
+  <String Id="SuccessRepairHeader" Value="Відновлення завершено" />
+  <String Id="SuccessUninstallHeader" Value="Видалення завершено" />
+  <String Id="SuccessUnsafeUninstallHeader" Value="Видалення завершено" />
+  <String Id="SuccessLaunchButton" Value="▶  &amp;Запустити" />
+  <String Id="SuccessRestartText" Value="Перед використанням програми перезавантажте комп’ютер." />
+  <String Id="SuccessUninstallRestartText" Value="Щоб завершити видалення, перезавантажте комп’ютер." />
+  <String Id="SuccessRestartButton" Value="&amp;Перезавантажити" />
+  <String Id="SuccessCloseButton" Value="&amp;Закрити" />
+  <String Id="FailureHeader" Value="Помилка встановлення" />
+  <String Id="FailureCacheHeader" Value="Помилка кешування" />
+  <String Id="FailureInstallHeader" Value="Помилка встановлення" />
+  <String Id="FailureLayoutHeader" Value="Помилка створення копії" />
+  <String Id="FailureModifyHeader" Value="Помилка зміни" />
+  <String Id="FailureRepairHeader" Value="Помилка відновлення" />
+  <String Id="FailureUninstallHeader" Value="Помилка видалення" />
+  <String Id="FailureUnsafeUninstallHeader" Value="Помилка видалення" />
+  <String Id="FailureHyperlinkLogText" Value="Встановлення не вдалося. Усуньте проблему та повторіть встановлення. Подробиці — у &lt;a href=&quot;#&quot;&gt;журналі&lt;/a&gt;." />
+  <String Id="FailureRestartText" Value="Щоб завершити відкат, перезавантажте комп’ютер." />
+  <String Id="FailureRestartButton" Value="&amp;Перезавантажити" />
+  <String Id="FailureCloseButton" Value="&amp;Закрити" />
+  <String Id="FilesInUseTitle" Value="Файли використовуються" />
+  <String Id="FilesInUseLabel" Value="Файли, які потрібно оновити, використовують ці застосунки:" />
+  <String Id="FilesInUseNetfxCloseRadioButton" Value="Закрити &amp;застосунки." />
+  <String Id="FilesInUseCloseRadioButton" Value="Закрити &amp;застосунки та спробувати запустити їх знову." />
+  <String Id="FilesInUseDontCloseRadioButton" Value="&amp;Не закривати застосунки. Знадобиться перезавантаження." />
+  <String Id="FilesInUseRetryButton" Value="&amp;Повторити" />
+  <String Id="FilesInUseIgnoreButton" Value="&amp;Пропустити" />
+  <String Id="FilesInUseExitButton" Value="&amp;Вихід" />
+  <String Id="SuccessInstalledText" Value="DexTor Launcher встановлено." />
+  <String Id="SuccessInstalledShortcutText" Value="DexTor Launcher встановлено. Ярлик додано на робочий стіл." />
+  <String Id="SuccessReadyText" Value="Усе готово. Запустіть лаунчер, щоб створити флешку з DexTor OS." />
+</WixLocalization>

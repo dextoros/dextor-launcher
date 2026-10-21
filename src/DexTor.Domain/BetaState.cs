@@ -1,0 +1,36 @@
+namespace DexTor.Domain;
+
+public enum BetaState
+{
+    Starting,
+    SelfCheck,
+    HostCheck,
+    NeedsWhpx,
+    NeedsReboot,
+    ImagePreparation,
+    WaitingForUsb,
+    NormalUsbDetected,
+    DexTorUsbDetected,
+    UsbSelected,
+    ReleasePreparing,
+    EraseConfirmation,
+    FormattingUsb,
+    WritingSystem,
+    CreatingDataImage,
+    VerifyingUsb,
+    ProvisioningGuest,
+    Updating,
+    SetupInterrupted,
+    UpdateCheck,
+    Ready,
+    Launching,
+    StorageLocked,
+    Running,
+    Stopping,
+    StorageClosed,
+    SafeToRemove,
+    UsbRemoved,
+    RecoveryRequired,
+    RepairRequired,
+    FatalError
+}

@@ -1,0 +1,15 @@
+# The launcher is a Windows-only product and .editorconfig mandates CRLF.
+# Pin it here too so the WSL read-only views of this tree
+# (/mnt/d/DexTor/repos/dextor-launcher) never churn line endings.
+* text=auto eol=crlf
+
+# Shell scripts stay LF even on Windows checkouts.
+*.sh text eol=lf
+
+# Keep binary assets byte-exact.
+*.png binary
+*.jpg binary
+*.ico binary
+*.docx binary
+*.img binary
+*.iso binary

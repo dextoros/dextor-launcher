@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>DexTor.FakeQemu</RootNamespace>
+    <IsPackable>false</IsPackable>
+
+    <!--
+      Builds straight into the test project's output as fake-qemu\, so a test can find
+      the stand-in at a fixed path next to itself without a copy target that could run
+      before this project is built. DexTor.Launcher.Tests references this project purely
+      to order the build.
+    -->
+    <OutputPath>$(MSBuildThisFileDirectory)..\DexTor.Launcher.Tests\bin\$(Configuration)\net10.0-windows\fake-qemu\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,62 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RootNamespace>DexTor.SessionHost</RootNamespace>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\\DexTor.Domain\\DexTor.Domain.csproj" />
+    <ProjectReference Include="..\\DexTor.Contracts\\DexTor.Contracts.csproj" />
+    <ProjectReference Include="..\\DexTor.Qemu\\DexTor.Qemu.csproj" />
+    <ProjectReference Include="..\\DexTor.Support\\DexTor.Support.csproj" />
+    <ProjectReference Include="..\\DexTor.Platform.Windows\\DexTor.Platform.Windows.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="DexTor.Launcher.Tests" />
+  </ItemGroup>
+
+  <!--
+    Stamps the commit this binary was built from, so a diagnostic report can be matched to
+    the code that made the decision. Git is asked, never required: without it, or outside a
+    checkout, the build carries no stamp and the report says so rather than inventing one.
+    $(DexTorBuildCommit) can be supplied on the command line by a build that knows better.
+  -->
+  <Target Name="StampBuildCommit" BeforeTargets="GetAssemblyAttributes">
+    <Exec Command="git -C &quot;$(MSBuildProjectDirectory)&quot; rev-parse HEAD"
+          Condition="'$(DexTorBuildCommit)' == ''"
+          ConsoleToMSBuild="true"
+          StandardOutputImportance="low"
+          StandardErrorImportance="low"
+          ContinueOnError="true"
+          IgnoreExitCode="true">
+      <Output TaskParameter="ConsoleOutput" PropertyName="_DexTorGitHead" />
+      <Output TaskParameter="ExitCode" PropertyName="_DexTorGitExit" />
+    </Exec>
+    <Exec Command="git -C &quot;$(MSBuildProjectDirectory)&quot; status --porcelain"
+          Condition="'$(DexTorBuildCommit)' == '' and '$(_DexTorGitExit)' == '0'"
+          ConsoleToMSBuild="true"
+          StandardOutputImportance="low"
+          StandardErrorImportance="low"
+          ContinueOnError="true"
+          IgnoreExitCode="true">
+      <Output TaskParameter="ConsoleOutput" PropertyName="_DexTorGitStatus" />
+    </Exec>
+    <PropertyGroup>
+      <DexTorBuildCommit Condition="'$(DexTorBuildCommit)' == '' and '$(_DexTorGitExit)' == '0'">$(_DexTorGitHead.Trim())</DexTorBuildCommit>
+      <DexTorBuildCommit Condition="'$(DexTorBuildCommit)' != '' and '$(_DexTorGitStatus)' != ''">$(DexTorBuildCommit) (working tree modified)</DexTorBuildCommit>
+    </PropertyGroup>
+    <ItemGroup Condition="'$(DexTorBuildCommit)' != ''">
+      <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+        <_Parameter1>BuildCommit</_Parameter1>
+        <_Parameter2>$(DexTorBuildCommit)</_Parameter2>
+      </AssemblyAttribute>
+    </ItemGroup>
+  </Target>
+</Project>

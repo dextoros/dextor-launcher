@@ -1,0 +1,54 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RootNamespace>DexTor.Launcher</RootNamespace>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <UseWindowsForms>true</UseWindowsForms>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <ApplicationIcon>..\..\docs\favicon.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\\DexTor.Application\\DexTor.Application.csproj" />
+    <ProjectReference Include="..\\DexTor.Domain\\DexTor.Domain.csproj" />
+    <ProjectReference Include="..\\DexTor.Contracts\\DexTor.Contracts.csproj" />
+    <ProjectReference Include="..\\DexTor.Creator\\DexTor.Creator.csproj" />
+    <ProjectReference Include="..\\DexTor.Release\\DexTor.Release.csproj" />
+    <ProjectReference Include="..\\DexTor.SessionHost\\DexTor.SessionHost.csproj" />
+    <ProjectReference Include="..\\DexTor.Support\\DexTor.Support.csproj" />
+    <ProjectReference Include="..\\DexTor.Platform.Windows\\DexTor.Platform.Windows.csproj" />
+    <ProjectReference Include="..\\DexTor.Provisioner\\DexTor.Provisioner.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="DexTor.Launcher.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\docs\logo.png" Link="Assets\logo.png" LogicalName="DexTor.Launcher.Assets.logo.png" />
+    <EmbeddedResource Include="..\..\docs\favicon.png" Link="Assets\favicon.png" LogicalName="DexTor.Launcher.Assets.favicon.png" />
+    <EmbeddedResource Include="Assets\wordmark.png" LogicalName="DexTor.Launcher.Assets.wordmark.png" />
+    <EmbeddedResource Include="Assets\Fonts\*.ttf" LogicalName="DexTor.Launcher.Assets.Fonts.%(Filename)%(Extension)" />
+    <None Include="Assets\Fonts\Inter-LICENSE.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\runtime\qemu-manifest.json" Link="runtime\qemu-manifest.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <Target Name="CopyProvisionerExecutable" AfterTargets="Build">
+    <PropertyGroup>
+      <ProvisionerOutputDirectory>..\DexTor.Provisioner\bin\$(Configuration)\net10.0-windows</ProvisionerOutputDirectory>
+      <ProvisionerOutputDirectory Condition="'$(RuntimeIdentifier)' != ''">$(ProvisionerOutputDirectory)\$(RuntimeIdentifier)</ProvisionerOutputDirectory>
+    </PropertyGroup>
+    <ItemGroup>
+      <ProvisionerOutput Include="$(ProvisionerOutputDirectory)\DexTor.Provisioner.exe" />
+      <ProvisionerOutput Include="$(ProvisionerOutputDirectory)\DexTor.Provisioner.dll" />
+      <ProvisionerOutput Include="$(ProvisionerOutputDirectory)\DexTor.Provisioner.deps.json" />
+      <ProvisionerOutput Include="$(ProvisionerOutputDirectory)\DexTor.Provisioner.runtimeconfig.json" />
+      <ProvisionerOutput Include="$(ProvisionerOutputDirectory)\DiscUtils.Core.dll" />
+      <ProvisionerOutput Include="$(ProvisionerOutputDirectory)\DiscUtils.Fat.dll" />
+      <ProvisionerOutput Include="$(ProvisionerOutputDirectory)\DiscUtils.Iso9660.dll" />
+      <ProvisionerOutput Include="$(ProvisionerOutputDirectory)\DiscUtils.Streams.dll" />
+    </ItemGroup>
+    <Copy SourceFiles="@(ProvisionerOutput)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+  </Target>
+</Project>

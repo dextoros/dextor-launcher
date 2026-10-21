@@ -1,0 +1,42 @@
+{
+  "schemaVersion": "1.0",
+  "runtime": {
+    "name": "qemu-win-x64-bundle",
+    "version": "11.1.0",
+    "channels": ["beta"],
+    "distribution": "Stefan Weil QEMU for Windows x64",
+    "sourceUrl": "https://qemu.weilnetz.de/w64/2026/qemu-w64-setup-20260811.exe",
+    "sourceArchiveUrl": "https://download.qemu.org/qemu-11.1.0.tar.xz",
+    "sourceSignatureUrl": "https://download.qemu.org/qemu-11.1.0.tar.xz.sig",
+    "installerSha512": "5bcf9eed634e8575a37b74f445af41a2fe4106da512d0c30c368301d4c105037fdfab40a5287367a28a957624cddebbc8c07e16c88ab6634f554cdf3d16bf543",
+    "files": [
+      "qemu-system-x86_64.exe",
+      "share"
+    ],
+    "payloadPolicy": {
+      "includedExecutables": ["qemu-system-x86_64.exe"],
+      "excludedExtensions": [".pdb", ".debug", ".log"],
+      "excludedPaths": [
+        "share/doc/**",
+        "share/icons/**",
+        "share/man/**",
+        "share/edk2-arm*",
+        "share/edk2-aarch64*",
+        "share/edk2-riscv*",
+        "share/edk2-loongarch64*",
+        "share/hppa-*",
+        "share/openbios-*",
+        "share/opensbi-*",
+        "share/palcode-*",
+        "share/pnv-*",
+        "share/skiboot*",
+        "share/slof*",
+        "share/u-boot*",
+        "share/qemu-nsis.bmp",
+        "share/trace-events-all"
+      ]
+    },
+    "requiredSigned": false,
+    "signaturePolicy": "Pinned SHA-512 for Beta; first-party signed build required before production"
+  }
+}

@@ -1,0 +1,30 @@
+<Project Sdk="WixToolset.Sdk/6.0.2">
+  <PropertyGroup>
+    <OutputType>Bundle</OutputType>
+    <OutputName>DexTorOS-Setup-x64</OutputName>
+    <Platform>x64</Platform>
+    <ProductVersion Condition="'$(ProductVersion)' == ''">0.1.0</ProductVersion>
+    <MsiPath Condition="'$(MsiPath)' == ''">$(MSBuildThisFileDirectory)..\..\out\release\$(ProductVersion)\packages\DexTorOS-x64.msi</MsiPath>
+    <DefineConstants>ProductVersion=$(ProductVersion);MsiPath=$(MsiPath)</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WixToolset.BootstrapperApplications.wixext" />
+  </ItemGroup>
+
+  <!-- The BA's own strings are payloads (Bundle.wxs), not localizations of the bundle:
+       picked up by the SDK's default **/*.wxl glob they collide with each other. -->
+  <PropertyGroup>
+    <EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>
+  </PropertyGroup>
+
+  <Target Name="SignBundleEngine" Condition="'$(SignOutput)' == 'true'">
+    <Error Condition="'$(SignToolPath)' == ''" Text="SignToolPath is required when SignOutput=true." />
+    <Error Condition="'$(CertificateThumbprint)' == ''" Text="CertificateThumbprint is required when SignOutput=true." />
+    <Exec Command="&quot;$(SignToolPath)&quot; sign /sha1 $(CertificateThumbprint) /fd SHA256 /tr &quot;$(TimestampUrl)&quot; /td SHA256 /d &quot;DexTor OS Setup&quot; /du &quot;https://dextoros.com&quot; &quot;%(SignBundleEngine.FullPath)&quot;" />
+  </Target>
+
+  <Target Name="SignBundle" Condition="'$(SignOutput)' == 'true'">
+    <Exec Command="&quot;$(SignToolPath)&quot; sign /sha1 $(CertificateThumbprint) /fd SHA256 /tr &quot;$(TimestampUrl)&quot; /td SHA256 /d &quot;DexTor OS Setup&quot; /du &quot;https://dextoros.com&quot; &quot;%(SignBundle.FullPath)&quot;" />
+  </Target>
+</Project>

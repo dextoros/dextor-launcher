@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RootNamespace>DexTor.Launcher.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Ordering only: the stand-in QEMU builds into this project's output as fake-qemu\. -->
+    <ProjectReference Include="..\\DexTor.FakeQemu\\DexTor.FakeQemu.csproj" ReferenceOutputAssembly="false" Private="false" />
+    <ProjectReference Include="..\\..\\src\\DexTor.Launcher\\DexTor.Launcher.csproj" />
+    <ProjectReference Include="..\\..\\src\\DexTor.Application\\DexTor.Application.csproj" />
+    <ProjectReference Include="..\\..\\src\\DexTor.Release\\DexTor.Release.csproj" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="FluentAssertions" />
+  </ItemGroup>
+</Project>

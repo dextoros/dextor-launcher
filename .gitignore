@@ -1,0 +1,110 @@
+# Build and publish output
+/out/
+/artifacts/
+**/bin/
+**/obj/
+**/TestResults/
+**/coverage/
+*.coverage
+*.coveragexml
+*.trx
+
+# WiX generated artifacts
+*.wixobj
+*.wixpdb
+*.cab
+*.msi
+*.msm
+*.msp
+
+# Downloaded/runtime payloads and VM images
+/runtime/downloads/
+/runtime/payload/
+/runtime/qemu/
+/packaging/runtime-payload/
+qemu-w64-setup-*.exe
+*.iso
+*.img
+*.qcow2
+*.vhd
+*.vhdx
+*.7z
+*.zip
+
+# Never commit executable payloads. The QEMU runtime is staged at build time,
+# not versioned; this is the safety net if it is ever staged in-tree.
+*.exe
+*.dll
+
+# NuGet and local tool state
+/.nuget/
+/packages/
+*.nupkg
+*.snupkg
+
+# IDE and user-local state
+/.vs/
+/.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.rsuser
+
+# Temporary files, logs and crash dumps
+/.tmp/
+/tmp/
+/temp/
+*.tmp
+*.temp
+*.bak
+*.orig
+*.rej
+*.log
+*.dmp
+*.stackdump
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Local secrets and signing keys
+.env
+.env.*
+!.env.example
+/signing/private/
+*.pfx
+*.p12
+*.pvk
+*.key
+*.password
+
+# Native/guest build intermediates
+*.d
+*.o
+*.ko
+*.obj
+*.elf
+*.ilk
+*.map
+*.exp
+*.gch
+*.pch
+*.lib
+*.a
+*.la
+*.lo
+*.so
+*.so.*
+*.dylib
+*.dSYM/
+*.su
+*.idb
+*.pdb
+*.mod*
+.*.cmd
+.tmp_versions/
+modules.order
+Module.symvers
+Mkfile.old
+dkms.conf
+*.dwo

@@ -1,0 +1,21 @@
+name: Close pull requests
+
+# This repository publishes our releases and does not take code changes; see CONTRIBUTING.md.
+# pull_request_target runs with the repository's token but never checks out the pull request.
+on:
+  pull_request_target:
+    types: [opened, reopened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  close:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Close with an explanation
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.html_url }}
+        run: |
+          gh pr close "$PR" --comment "Thank you for your interest! This repository is a published copy of our source code and does not accept pull requests (see CONTRIBUTING.md). If you found a bug or have a fix in mind, please describe it in an issue - we will gladly apply it ourselves and credit you."

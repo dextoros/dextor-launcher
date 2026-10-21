@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>DexTor.Qemu</RootNamespace>
+    <!-- Required by the LibraryImport source generator; no unsafe code is written by hand. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\\DexTor.Domain\\DexTor.Domain.csproj" />
+    <ProjectReference Include="..\\DexTor.Contracts\\DexTor.Contracts.csproj" />
+  </ItemGroup>
+</Project>
