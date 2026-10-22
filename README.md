@@ -8,7 +8,6 @@
 
 [![Platform](https://img.shields.io/badge/platform-Windows%2011%20x64-0f172a?logo=windows11&logoColor=white)](#requirements)
 [![.NET](https://img.shields.io/badge/.NET-10-512bd4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
-[![Build](https://github.com/dextoros/dextor-launcher/actions/workflows/build.yml/badge.svg)](https://github.com/dextoros/dextor-launcher/actions/workflows/build.yml)
 [![Release](https://img.shields.io/github/v/release/dextoros/dextor-launcher?include_prereleases&color=8b5cf6)](https://github.com/dextoros/dextor-launcher/releases)
 [![License](https://img.shields.io/badge/license-source--available-8b5cf6)](LICENSE)
 
@@ -44,7 +43,7 @@ exactly what it does on a computer and to a USB drive - and what it does not.
 | 🔐 **Private storage** | A dedicated `data.img` is provided to DexTor OS for guest-managed LUKS encryption. The launcher prevents concurrent DexTor sessions for the same storage; it does not hold an exclusive file handle throughout the session. |
 | 🧳 **Portable, no system-wide installation** | One self-contained `.exe`, no separate .NET installation required. Downloads, the QEMU runtime, settings and diagnostic logs are kept in `%LOCALAPPDATA%\DexTor`; QEMU is not added to `PATH`. |
 | ⏯️ **Resumable and recoverable** | Downloads continue where they stopped. Creating a drive is a journaled transaction: after a crash or an unplugged stick it can be safely started again. |
-| 🔑 **Administrator rights only when needed** | For USB writes, the portable executable starts a separate elevated process in provisioner mode; the wizard itself runs as you. |
+| 🔑 **Administrator rights only when needed** | For USB writes, the portable executable starts a separate elevated process in provisioner mode; the wizard normally runs as you. Enabling Windows Hypervisor Platform also needs administrator approval. |
 | 🌍 **10 languages** | English, Russian, Ukrainian, German, Spanish, French, Brazilian Portuguese, Polish, Turkish and Simplified Chinese - switched live, without a restart. |
 
 ## How it works
@@ -56,9 +55,13 @@ exactly what it does on a computer and to a USB drive - and what it does not.
 </tr>
 <tr>
 <td width="50%"><img src=".github/assets/screenshots/creating.png" alt="Creating the drive"><br><sub><b>3. Create</b> - erase, write, verify, with live progress.</sub></td>
-<td width="50%"><img src=".github/assets/screenshots/ready.png" alt="The drive is ready"><br><sub><b>4. Ready</b> - start DexTor OS in Windows when virtualization is available, or boot from the stick.</sub></td>
+<td width="50%"><b>4. Ready</b><br>After verification, start DexTor OS in Windows when virtualization is available, or boot from the stick on a compatible PC. Close DexTor OS before removing the USB drive.</td>
 </tr>
 </table>
+
+Screenshots show the English v0.1.39 interface. Download sizes, timings and hardware
+values are examples; direct boot depends on compatible hardware. The launcher does not
+guarantee that guest data is erased at shutdown.
 
 The finished stick is a hybrid drive: the verified DexTor OS live image with its own
 UEFI/GRUB boot paths, plus an extra NTFS partition named `DEXTOR` holding a second copy of
@@ -66,26 +69,15 @@ the system image and the private `data.img`.
 
 ## Architecture
 
-```mermaid
-flowchart LR
-    subgraph Windows host
-        L["DexTor.Launcher<br/><sub>setup wizard</sub>"]
-        A["DexTor.Application<br/><sub>flows, preflight, localization</sub>"]
-        R["DexTor.Release<br/><sub>download + verify</sub>"]
-        P["DexTor.Provisioner<br/><sub>elevated USB writer</sub>"]
-        S["DexTor.SessionHost<br/><sub>VM session, storage lock</sub>"]
-        Q["DexTor.Qemu<br/><sub>launch plan, QMP</sub>"]
-        W["DexTor.Platform.Windows<br/><sub>Win32 adapters</sub>"]
-    end
-    VM[("QEMU + WHPX<br/>DexTor OS")]
-    USB[("USB drive<br/>system image + data.img")]
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/architecture-dark.svg">
+  <img src="docs/architecture-light.svg" alt="Launcher components, elevated USB provisioning, and a QEMU virtual machine on the Windows host using the USB drive." width="100%">
+</picture>
 
-    L --> A --> R
-    A --> W
-    L -- "UAC, typed requests" --> P --> USB
-    L --> S --> Q --> VM
-    VM -- "virtio block" --> USB
-```
+This is a logical component diagram, not a security boundary. QEMU and its guest VM run
+on the Windows host. Session ownership prevents concurrent DexTor sessions; it is not
+an exclusive file lock. Optional Windows Hypervisor Platform preparation also requires
+administrator approval.
 
 | Project | Responsibility |
 |---|---|
@@ -125,6 +117,19 @@ To remove the launcher and its local cache, finish USB creation, close DexTor OS
 then delete the portable executable and `%LOCALAPPDATA%\DexTor`. This does not erase the USB
 drive or remove records Windows itself may retain, such as execution history or security logs.
 
+## Verify a download
+
+Download the portable executable from [GitHub Releases](https://github.com/dextoros/dextor-launcher/releases)
+and compare its SHA-256 with the value in that exact release's notes:
+
+```powershell
+Get-FileHash -Algorithm SHA256 -LiteralPath '.\DexTorOS-Portable-VERSION-win-x64.exe'
+```
+
+Replace `VERSION` with the downloaded version. A matching hash checks file integrity;
+it does not establish a trusted publisher. The v0.1.39 executable is unsigned. If the
+hash differs, do not run the file; report the mismatch.
+
 ## Building from source
 
 You need the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0).
@@ -157,5 +162,5 @@ Third-party components keep their own licenses - see
 [THIRD-PARTY-NOTICES.md](packaging/THIRD-PARTY-NOTICES.md).
 
 <div align="center">
-<sub>© 2026 DexTor OS · <a href="https://dextoros.com">dextoros.com</a></sub>
+<sub>© 2026 DexTor OS Team · <a href="https://dextoros.com">dextoros.com</a></sub>
 </div>

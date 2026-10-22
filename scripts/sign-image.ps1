@@ -8,13 +8,13 @@
     produces both files; it is the same as
 
         sha256sum DextorOS_X.iso > DextorOS_X.iso.sha256
-        openssl dgst -sha256 -sign dextor-os-release.key.pem -out DextorOS_X.iso.sig DextorOS_X.iso
+        openssl dgst -sha256 -sign "release-private-key.pem" -out DextorOS_X.iso.sig DextorOS_X.iso
 
     and checks the signature against the public key before it finishes. Upload both files
     next to the image before lastversion.link points at it.
 
 .EXAMPLE
-    .\scripts\sign-image.ps1 -Image D:\out\DextorOS_1_1_46.iso -PrivateKey D:\keys\dextor-os-release.key.pem
+    .\scripts\sign-image.ps1 -Image "path-to-image.iso" -PrivateKey "path-to-release-private-key.pem"
 #>
 param(
     [Parameter(Mandatory = $true)][string]$Image,
