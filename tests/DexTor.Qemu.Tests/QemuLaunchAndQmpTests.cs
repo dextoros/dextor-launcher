@@ -24,7 +24,10 @@ public sealed class QemuLaunchAndQmpTests : IDisposable
         plan.Arguments.Should().ContainInOrder("-accel", "whpx");
         plan.Arguments.Should().NotContain("-cpu");
         plan.Arguments.Should().ContainInOrder("-smp", "cores=4", "-m", "4096M");
-        plan.Arguments.Should().ContainInOrder("-boot", "once=d,menu=off,splash-time=0");
+        // A restart from inside DexTor OS resets the VM in place, and boots the system image
+        // again: order=, which every reset keeps, not once=, which only the first boot gets.
+        plan.Arguments.Should().ContainInOrder("-boot", "order=d,menu=off,splash-time=0");
+        plan.Arguments.Should().NotContain("-no-reboot", "with it a restart from inside ended QEMU and read as a crash");
         plan.Arguments.Should().ContainInOrder("-netdev", "user,id=dextor-net", "-device", "virtio-net-pci,netdev=dextor-net,romfile=");
         plan.Arguments.Should().NotContain("-fw_cfg", "a request without guest settings leaves the guest as it boots from the stick");
         plan.Arguments.Should().Contain(argument => argument.Contains("if=ide,index=2,media=cdrom,readonly=on,format=raw", StringComparison.Ordinal));

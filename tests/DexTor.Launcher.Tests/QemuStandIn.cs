@@ -114,6 +114,7 @@ internal sealed class QemuStandIn
                 startedPath = StartedPath,
                 handshakePath = HandshakePath,
                 shutdownPath = ShutdownPath,
+                guestActionPath = GuestActionPath,
                 descendantPidPath = DescendantPidPath,
                 spawnDescendant,
                 honorPowerdown,
@@ -150,6 +151,25 @@ internal sealed class QemuStandIn
     public void BreakExecutable() => File.WriteAllText(ExecutablePath, "not a portable executable");
 
     public void RequestShutdown() => File.WriteAllText(ShutdownPath, "stop");
+
+    /// <summary>Asked of the stand-in: the guest acts from inside - "reset" or "shutdown".</summary>
+    public string GuestActionPath => Path.Combine(_runtimeDirectory, "guest-action");
+
+    /// <summary>The guest restarts from inside: QEMU reports RESET and runs on.</summary>
+    public void RestartGuest() => RequestGuestAction("reset");
+
+    /// <summary>The guest powers off from inside: QEMU reports SHUTDOWN guest-shutdown and exits.</summary>
+    public void ShutDownGuest() => RequestGuestAction("shutdown");
+
+    /// <summary>Written then renamed, so the stand-in never reads half a word.</summary>
+    private void RequestGuestAction(string action)
+    {
+        File.WriteAllText(GuestActionPath + ".partial", action);
+        File.Move(GuestActionPath + ".partial", GuestActionPath, true);
+    }
+
+    /// <summary>True once the stand-in has taken the last requested guest action.</summary>
+    public bool GuestActionTaken => !File.Exists(GuestActionPath);
 
     /// <summary>The stand-in's own process id, taken from the report it writes.</summary>
     public int ReadProcessId() => ReadReport().ProcessId;

@@ -159,7 +159,7 @@ public sealed class SessionHostService : ISessionHostService, IAsyncDisposable
         _runtimeManifestPath = runtimeManifestPath ?? ResolveDefaultRuntimeManifestPath(_runtimeRoot, AppContext.BaseDirectory);
         _journal = new SessionJournal(
             journalPath
-            ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DexTor", "session.json"));
+            ?? Path.Combine(DexTorStorage.Root, "session.json"));
     }
 
     /// <summary>The wizard's language (en, ru, uk), passed to the guest at the next start.</summary>
@@ -239,6 +239,13 @@ public sealed class SessionHostService : ISessionHostService, IAsyncDisposable
     public SessionState State => _state;
 
     public string? LastError => _lastQmpError;
+
+    /// <summary>
+    /// The last session ended because DexTor OS shut itself down (QMP SHUTDOWN, guest-shutdown)
+    /// and QEMU left on its own: the operator's choice, not a crash. False for a stop asked
+    /// from the launcher, a QEMU that died, a panic and a restart loop.
+    /// </summary>
+    public bool EndedByGuestShutdown { get; private set; }
 
     private volatile bool _pausedForSpace;
 
@@ -335,6 +342,7 @@ public sealed class SessionHostService : ISessionHostService, IAsyncDisposable
         CancellationToken cancellationToken)
     {
         _qemuExitedDuringStart = false;
+        EndedByGuestShutdown = false;
         _guestNeverDrew = false;
         _loggedSessionId = null;
         await _lifecycle.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -475,6 +483,22 @@ public sealed class SessionHostService : ISessionHostService, IAsyncDisposable
                 () => _showWindowNow,
                 () => progress?.Report(new(SessionStartStage.GuestSlow)));
             var reveal = _revealWindow(process, ReadGuestScreenAsync, cancellationToken, windowOptions);
+            // A restart from inside DexTor OS resets it in this same QEMU (no -no-reboot): the
+            // window is covered again until the guest draws. Screens read for that say nothing
+            // to the start's progress, which is over by then.
+            _signalsTask = signalsTask;
+            lock (_recentRestarts)
+            {
+                _recentRestarts.Clear();
+                GuestRestarts = 0;
+            }
+
+            _coverRestart = _realQemu
+                ? () => QemuWindowManager.CoverGuestRestart(
+                    process,
+                    token => displayChannel is { } channel ? GuestDisplay.ReadAsync(channel, token) : Task.FromResult(GuestScreen.Unknown),
+                    windowOptions)
+                : null;
             process.Exited += (_, _) => OnProcessExited(generation);
             process.Exited += (_, _) => _ = CloseSignalsAsync(signalsTask);
             _standardError = process.StandardError.ReadToEndAsync(CancellationToken.None);
@@ -825,6 +849,9 @@ public sealed class SessionHostService : ISessionHostService, IAsyncDisposable
         if (generation.ObservedShutdown == GuestShutdownEvidence.ObservedGuestInitiated)
         {
             _lastQmpError = null;
+            // Set before the finalization run publishes a state, so the launcher reads it
+            // together with the end of the session.
+            EndedByGuestShutdown = true;
             VmSessionLog.Note(generation.SessionId, $"guest shut down after {ranFor.TotalSeconds:0} s"
                 + (string.IsNullOrWhiteSpace(diagnostics) ? string.Empty : $"; QEMU: {diagnostics}"));
         }
@@ -848,6 +875,92 @@ public sealed class SessionHostService : ISessionHostService, IAsyncDisposable
         await SettleAsync(generation, report).ConfigureAwait(false);
     }
 
+    private Task<GuestSignals?>? _signalsTask;
+    private Action? _coverRestart;
+    private readonly List<DateTime> _recentRestarts = [];
+
+    /// <summary>
+    /// How many restarts within <see cref="RestartLoopWindow"/> make a loop rather than a
+    /// restart: a guest that resets that often is crashing, and is stopped and reported.
+    /// </summary>
+    internal const int RestartLoopLimit = 3;
+
+    internal static readonly TimeSpan RestartLoopWindow = TimeSpan.FromMinutes(1);
+
+    /// <summary>The guest has restarted this many times since the session started.</summary>
+    public int GuestRestarts { get; private set; }
+
+    /// <summary>
+    /// DexTor OS restarted from inside. QEMU runs without <c>-no-reboot</c>, so this is a reset
+    /// in place: the same process, the same job, the same ownership and the same data.img -
+    /// nothing is released or started again, and no second writer can appear. The session
+    /// goes on; only the window is covered until the guest draws again.
+    /// </summary>
+    /// <remarks>
+    /// With <c>-no-reboot</c> (up to 0.1.39) the same restart ended QEMU with SHUTDOWN reason
+    /// guest-reset, which is no evidence of an orderly stop, and the launcher said DexTor OS
+    /// had stopped unexpectedly. A guest that keeps resetting - a triple fault in the
+    /// firmware, a kernel that dies at once - used to end QEMU too; it is now stopped once it
+    /// has reset <see cref="RestartLoopLimit"/> times within <see cref="RestartLoopWindow"/>,
+    /// and reported as a crash.
+    /// </remarks>
+    private void OnGuestRestarted(SessionGeneration generation, QmpEvent qmpEvent)
+    {
+        var reason = qmpEvent.Data is { ValueKind: System.Text.Json.JsonValueKind.Object } data
+            && data.TryGetProperty("reason", out var reasonElement)
+            && reasonElement.ValueKind == System.Text.Json.JsonValueKind.String
+                ? reasonElement.GetString()
+                : null;
+        var now = DateTime.UtcNow;
+        int recent;
+        lock (_recentRestarts)
+        {
+            GuestRestarts++;
+            _recentRestarts.RemoveAll(at => now - at > RestartLoopWindow);
+            _recentRestarts.Add(now);
+            recent = _recentRestarts.Count;
+        }
+
+        VmSessionLog.Note(generation.SessionId, $"guest restarted ({reason ?? "no reason given"}): reset in place, same QEMU and storage claim");
+        // What the guest said belongs to the boot that ended; it says "frame" and "desktop" again.
+        if (_signalsTask is { IsCompletedSuccessfully: true, Result: { } signals }) signals.Restart();
+
+        if (recent >= RestartLoopLimit && generation.Finalizer is not null && _state == SessionState.Running)
+        {
+            var ranFor = now - _runningSinceUtc;
+            if (ranFor < EarlyGuestDeath && _startedProfile is { } profile && _startedExecutable is { } executable)
+            {
+                _profiles?.Refuse(executable, profile);
+            }
+
+            _lastQmpError = $"DexTor OS restarted {recent} times within a minute, so it was stopped.";
+            VmSessionLog.Note(generation.SessionId, _lastQmpError);
+            _ = StopAfterRestartLoopAsync();
+            return;
+        }
+
+        try
+        {
+            _coverRestart?.Invoke();
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or System.ComponentModel.Win32Exception)
+        {
+            // Covering the window is cosmetic; the restart goes on.
+        }
+    }
+
+    private async Task StopAfterRestartLoopAsync()
+    {
+        try
+        {
+            await FinalizeAsync(requestEject: false, progress: null, CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or IOException or OperationCanceledException)
+        {
+            // The finalization run records its own outcome; the launcher sees the state.
+        }
+    }
+
     private void OnQmpEvent(SessionGeneration generation, QmpEvent qmpEvent)
     {
         if (!ReferenceEquals(generation, _generation))
@@ -858,6 +971,12 @@ public sealed class SessionHostService : ISessionHostService, IAsyncDisposable
         }
 
         generation.Observe(qmpEvent);
+
+        if (string.Equals(qmpEvent.Event, QmpShutdownEvidence.ResetEvent, StringComparison.Ordinal))
+        {
+            OnGuestRestarted(generation, qmpEvent);
+            return;
+        }
 
         if (IsNoSpacePause(qmpEvent))
         {

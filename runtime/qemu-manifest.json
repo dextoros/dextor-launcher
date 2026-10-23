@@ -5,7 +5,22 @@
     "version": "11.1.0",
     "channels": ["beta"],
     "distribution": "Stefan Weil QEMU for Windows x64",
-    "sourceUrl": "https://qemu.weilnetz.de/w64/2026/qemu-w64-setup-20260811.exe",
+    "sourceUrl": "https://github.com/dextoros/qemu-runtime/releases/download/qemu-11.1.0-20260811/qemu-w64-setup-20260811.exe",
+    "fallbackSourceUrls": [
+      "https://qemu.weilnetz.de/w64/2026/qemu-w64-setup-20260811.exe"
+    ],
+    "upstreamUrl": "https://qemu.weilnetz.de/w64/2026/qemu-w64-setup-20260811.exe",
+    "mirror": {
+      "repository": "https://github.com/dextoros/qemu-runtime",
+      "release": "qemu-11.1.0-20260811",
+      "note": "Byte-for-byte copy of Stefan Weil's QEMU for Windows installer from upstreamUrl, not rebuilt or modified; installerSha512 pins the same file on every URL. The release also carries the corresponding source (GPL-2.0): buildSource as an archive, and sourceArchiveUrl with its signature for the firmware sources."
+    },
+    "buildSource": {
+      "repository": "https://repo.or.cz/qemu/ar7.git",
+      "commit": "e470268ff446ec56728215a987ed166d5ed8fb64",
+      "versionString": "v11.1.0-12130-ge470268ff4",
+      "mirrorAsset": "qemu-weilnetz-e470268ff446.tar.xz"
+    },
     "sourceArchiveUrl": "https://download.qemu.org/qemu-11.1.0.tar.xz",
     "sourceSignatureUrl": "https://download.qemu.org/qemu-11.1.0.tar.xz.sig",
     "installerSha512": "5bcf9eed634e8575a37b74f445af41a2fe4106da512d0c30c368301d4c105037fdfab40a5287367a28a957624cddebbc8c07e16c88ab6634f554cdf3d16bf543",

@@ -15,9 +15,10 @@ namespace DexTor.Launcher.Tests;
 /// Walks the wizard through every screen of the design and saves each one - the client area,
 /// as the mock-ups show it - as a PNG named after the mock-up it is compared with. Runs only
 /// when <c>DEXTOR_SCREENSHOTS</c> names a folder; otherwise it does nothing.
-/// <c>DEXTOR_SCREENSHOTS_ONLY</c> limits it to names containing that text.
+/// <c>DEXTOR_SCREENSHOTS_ONLY</c> limits it to names containing that text;
+/// <c>DEXTOR_SCREENSHOTS_WINDOW=1</c> also saves each as the whole window ("-window.png").
 /// </summary>
-public sealed class WizardScreenshots
+public sealed partial class WizardScreenshots
 {
     private static readonly long GB = 1024L * 1024 * 1024;
 
@@ -134,7 +135,7 @@ public sealed class WizardScreenshots
             var hold = new TaskCompletionSource<LiveImagePreparationResult>();
             d.Prepare = async (_, progress) =>
             {
-                var total = (long)(1.6 * GB);
+                var total = (long)(1.8 * GB);
                 for (var i = 1; i <= 24; i++)
                 {
                     progress.Report(new LiveImagePreparationProgress(i * 10_700_000L, total, 65.4 * 1024 * 1024, TimeSpan.FromSeconds(21), LiveImagePreparationService.StageDownload));
@@ -207,7 +208,7 @@ public sealed class WizardScreenshots
                         progress.Report(new CreatorActionService.CreatorStepProgress(
                             stage == UsbProvisioningStage.CleaningDisk ? CreatorStep.FormatUsb : CreatorStep.WriteSystemImage,
                             CreatorActionService.CreatorStepStatus.Info, UsbProvisionerClient.StageMessageKey(stage),
-                            BytesDone: done == 0 ? 0 : done / 12 * (i + 1), BytesTotal: done == 0 ? 0 : (long)(1.6 * GB)));
+                            BytesDone: done == 0 ? 0 : done / 12 * (i + 1), BytesTotal: done == 0 ? 0 : (long)(1.8 * GB)));
                         await Task.Delay(80);
                     }
 
@@ -230,14 +231,60 @@ public sealed class WizardScreenshots
             });
         }
 
+        // For the README: the copy for Windows half written, some seconds of speed on the chart.
+        await Run("creating-half", d => d.Create = async (_, progress) =>
+        {
+            var image = (long)(1.8 * GB);
+            progress.Report(new CreatorActionService.CreatorStepProgress(UsbProvisionerClient.MapStage(UsbProvisioningStage.WritingSystemImage),
+                CreatorActionService.CreatorStepStatus.Info, UsbProvisionerClient.StageMessageKey(UsbProvisioningStage.WritingSystemImage),
+                BytesDone: image, BytesTotal: image));
+            await Task.Delay(100);
+            progress.Report(new CreatorActionService.CreatorStepProgress(UsbProvisionerClient.MapStage(UsbProvisioningStage.CreatingPrivateStorage),
+                CreatorActionService.CreatorStepStatus.Info, UsbProvisionerClient.StageMessageKey(UsbProvisioningStage.CreatingPrivateStorage)));
+            await Task.Delay(100);
+            // The page shows speed averaged over 20 s and keeps the last 120 samples, so a curve
+            // needs a real stick's write from its start: its cache taken fast, then slower and
+            // faster stretches as it flushes. One report every 300 ms puts all 36 s on the chart.
+            static double MegabytesPerSecond(double seconds) => seconds switch
+            {
+                < 4 => 80,
+                < 14 => 6,
+                < 24 => 40,
+                < 32 => 5,
+                _ => 32
+            };
+
+            double copied = 0;
+            var random = new Random(7);
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            var last = 0.0;
+            while (clock.Elapsed.TotalSeconds < 36)
+            {
+                await Task.Delay(300);
+                var now = clock.Elapsed.TotalSeconds;
+                copied += MegabytesPerSecond(now) * (0.85 + random.NextDouble() * 0.3) * (now - last) * 1024 * 1024;
+                last = now;
+                progress.Report(new CreatorActionService.CreatorStepProgress(UsbProvisionerClient.MapStage(UsbProvisioningStage.CopyingWindowsImage),
+                    CreatorActionService.CreatorStepStatus.Info, UsbProvisionerClient.StageMessageKey(UsbProvisioningStage.CopyingWindowsImage),
+                    BytesDone: (long)copied, BytesTotal: image));
+            }
+
+            return await new TaskCompletionSource<CreatorActionService.CreateUsbResult>().Task;
+        }, async (w, shot) =>
+        {
+            await AdvanceTo(w, 3);
+            _ = w.AdvanceAsync();
+            await Pump(35000);
+            await shot("creating-half");
+        });
         await Run("create-verify", d => d.Create = async (_, progress) =>
         {
             // The copy for Windows being read back: "Checking the write" is the line under way.
             foreach (var (stage, bytesDone, bytesTotal) in new[]
                      {
-                         (UsbProvisioningStage.WritingSystemImage, 2 * (long)(1.6 * GB), 2 * (long)(1.6 * GB)),
+                         (UsbProvisioningStage.WritingSystemImage, 2 * (long)(1.8 * GB), 2 * (long)(1.8 * GB)),
                          (UsbProvisioningStage.CreatingPrivateStorage, 0L, 0L),
-                         (UsbProvisioningStage.CopyingWindowsImage, (long)(1.9 * GB), 2 * (long)(1.6 * GB))
+                         (UsbProvisioningStage.CopyingWindowsImage, (long)(1.9 * GB), 2 * (long)(1.8 * GB))
                      })
             {
                 progress.Report(new CreatorActionService.CreatorStepProgress(UsbProvisionerClient.MapStage(stage),
@@ -256,7 +303,7 @@ public sealed class WizardScreenshots
         await Run("220631", d => d.Create = async (_, progress) =>
         {
             progress.Report(new CreatorActionService.CreatorStepProgress(CreatorStep.WriteSystemImage, CreatorActionService.CreatorStepStatus.Info,
-                UsbProvisionerClient.StageMessageKey(UsbProvisioningStage.WritingSystemImage), BytesDone: 200_000_000, BytesTotal: (long)(1.6 * GB)));
+                UsbProvisionerClient.StageMessageKey(UsbProvisioningStage.WritingSystemImage), BytesDone: 200_000_000, BytesTotal: (long)(1.8 * GB)));
             await Task.Delay(200);
             return new CreatorActionService.CreateUsbResult(false, @"F:\", new CreatorTransaction(CreatorStep.WriteSystemImage), "device gone",
                 ErrorMessageKey: "launcher.create.error.device.disappeared");
@@ -325,6 +372,12 @@ public sealed class WizardScreenshots
         using var bitmap = new Bitmap(root.Width, root.Height);
         root.DrawToBitmap(bitmap, new Rectangle(Point.Empty, root.Size));
         bitmap.Save(path, ImageFormat.Png);
+        if (Environment.GetEnvironmentVariable("DEXTOR_SCREENSHOTS_WINDOW") == "1")
+        {
+            // The whole window with its title bar, as a person sees it - for the README.
+            SaveWindow(window, Path.Combine(Path.GetDirectoryName(path)!, Path.GetFileNameWithoutExtension(path) + "-window.png"));
+        }
+
         var lines = new List<string>();
         void Dump(Control control, int depth)
         {
@@ -336,6 +389,59 @@ public sealed class WizardScreenshots
         Dump(root, 0);
         File.WriteAllLines(Path.ChangeExtension(path, ".txt"), lines);
     }
+
+    /// <summary>
+    /// The window as the compositor draws it (title bar included, off screen too), cut to the
+    /// visible frame: Windows 11 counts invisible resize borders in the window rectangle.
+    /// </summary>
+    private static void SaveWindow(Form window, string path)
+    {
+        GetWindowRect(window.Handle, out var outer);
+        if (DwmGetWindowAttribute(window.Handle, DwmwaExtendedFrameBounds, out var frame, System.Runtime.InteropServices.Marshal.SizeOf<NativeRect>()) != 0)
+        {
+            frame = outer;
+        }
+
+        using var full = new Bitmap(outer.Right - outer.Left, outer.Bottom - outer.Top, PixelFormat.Format32bppArgb);
+        using (var g = Graphics.FromImage(full))
+        {
+            var dc = g.GetHdc();
+            try
+            {
+                PrintWindow(window.Handle, dc, PwRenderFullContent);
+            }
+            finally
+            {
+                g.ReleaseHdc(dc);
+            }
+        }
+
+        // The visible frame, as wide as the client: the 1 px frame lines at the sides are left out.
+        var client = window.RectangleToScreen(window.ClientRectangle);
+        var visible = Rectangle.FromLTRB(client.Left - outer.Left, frame.Top - outer.Top, client.Right - outer.Left, frame.Bottom - outer.Top);
+        using var cropped = full.Clone(visible, PixelFormat.Format24bppRgb);
+        cropped.Save(path, ImageFormat.Png);
+    }
+
+    private const uint PwRenderFullContent = 2;
+    private const int DwmwaExtendedFrameBounds = 9;
+
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    private struct NativeRect
+    {
+        public int Left, Top, Right, Bottom;
+    }
+
+    [System.Runtime.InteropServices.LibraryImport("user32.dll")]
+    [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+    private static partial bool PrintWindow(IntPtr window, IntPtr dc, uint flags);
+
+    [System.Runtime.InteropServices.LibraryImport("user32.dll")]
+    [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+    private static partial bool GetWindowRect(IntPtr window, out NativeRect rect);
+
+    [System.Runtime.InteropServices.LibraryImport("dwmapi.dll")]
+    private static partial int DwmGetWindowAttribute(IntPtr window, int attribute, out NativeRect value, int size);
 
     private static async Task DialogShotAsync(LauncherWizardWindow window, LauncherWizardWindow.ConfirmationDialog dialog, string path)
     {
@@ -378,8 +484,11 @@ public sealed class WizardScreenshots
                 Journal: JournalPersistenceResult.Persisted);
             var usb = new UsbDriveSnapshot(@"F:\", "", "exFAT", 62_062_000_000, 61_955_000_000, true, true,
                 new UsbPhysicalIdentity(3, "id", "serial", 62_062_000_000, "USB", "Kingston DataTraveler 3.0", false, false, false));
-            var image = @"C:\DexTor\LiveImage\dextor-os-1.0-beta.img";
-            const string sha = "9f2c41ab7e05c3d81b6a92f4e0175cd38a2e6f19b4c073d5e8a12f6c0b94d7e3";
+            // Where the launcher keeps the image (%LOCALAPPDATA%\DexTor\cache), under a made-up
+            // user name: the pictures go into the README and must not show a real one.
+            const string cache = @"C:\Users\you\AppData\Local\DexTor\cache";
+            var image = Path.Combine(cache, "DextorOS_1_1_49.iso");
+            const string sha = "54ebec50a6bca2f892b9b999956f2ef6fc5d365a3f5d77977bc6321ca6373b93";
             var report = new PreflightReport(true,
             [
                 new PreflightRequirement(PreflightRequirementKind.OperatingSystem, PreflightRequirementState.Ok, "preflight.os.title", "preflight.os.ok",
@@ -397,12 +506,14 @@ public sealed class WizardScreenshots
                 RefreshEnvironment = () => Environment?.Task ?? Task.FromResult(new LauncherWizardEnvironment(report, new LauncherContext { IsWhpxEnabled = !VirtualizationOff })),
                 PreparePc = () => Task.FromResult(new LauncherInlineActionResult(true, "Ready", "Restart")),
                 RestartWindows = () => true,
-                InspectImage = (_, _) => Task.FromResult(new LiveImageCacheInspectionResult(true, ImageReady, @"C:\DexTor\LiveImage", "https://dextoros.com/releases/dextor-os-1.0-beta.img",
-                    image, ImageReady ? sha : null, (long)(1.6 * GB), SigningKey: ImageReady ? "DexTor OS Release · " + DexTor.Release.ImageSigningKey.Release.Fingerprint : null)),
-                PrepareImage = Prepare ?? ((_, _) => Task.FromResult(new LiveImagePreparationResult(true, null, image, sha, (long)(1.6 * GB), SigningKey: "DexTor OS Release · " + DexTor.Release.ImageSigningKey.Release.Fingerprint))),
+                InspectImage = (_, _) => Task.FromResult(new LiveImageCacheInspectionResult(true, ImageReady, cache,"https://dextoros.com/public/1.1.49/DextorOS_1_1_49.iso",
+                    image, ImageReady ? sha : null, (long)(1.8 * GB), SigningKey: ImageReady ? "DexTor OS Release · " + DexTor.Release.ImageSigningKey.Release.Fingerprint : null)),
+                PrepareImage = Prepare ?? ((_, _) => Task.FromResult(new LiveImagePreparationResult(true, null, image, sha, (long)(1.8 * GB), SigningKey: "DexTor OS Release · " + DexTor.Release.ImageSigningKey.Release.Fingerprint))),
                 InspectUsbDrives = _ => Task.FromResult(Drives ?? [usb]),
                 HasEnoughSpace = (_, _) => true,
                 ConfirmErase = _ => true,
+                // As in the launcher, so "Stop writing" is live while the stick is written.
+                CancelCreation = () => false,
                 CreateUsb = Create ?? ((drive, _) => Task.FromResult(new CreatorActionService.CreateUsbResult(true, drive.RootPath, new CreatorTransaction(CreatorStep.Complete)))),
                 VerifyDexTorUsb = (_, _, _) => Task.FromResult(new DexTorUsbReadinessResult(false)),
                 StartDexTor = Start ?? ((_, _) => Task.CompletedTask),

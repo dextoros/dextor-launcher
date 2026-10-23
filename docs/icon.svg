@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The DexTor OS mark on its own: the USB plug over the purple shield, cut from
+     docs/logo.svg with the same paths and gradients, centred in a square with a small
+     transparent margin. Master for docs/favicon.ico, docs/favicon.png and the MSIX
+     visual assets (scripts/new-store-assets.ps1). -->
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="81.19 122.28 232 232">
+	<linearGradient id="shield" gradientUnits="userSpaceOnUse" x1="250.8302" y1="180.6572" x2="137.593" y2="328.6504">
+		<stop offset="0" style="stop-color:#632D87"/>
+		<stop offset="0.3834" style="stop-color:#612C85"/>
+		<stop offset="0.599" style="stop-color:#5A287C"/>
+		<stop offset="0.773" style="stop-color:#4D226F"/>
+		<stop offset="0.9239" style="stop-color:#3C1A5B"/>
+		<stop offset="1" style="stop-color:#30144E"/>
+	</linearGradient>
+	<path fill="url(#shield)" d="M197.19,210.37c5.66,3.25,13,6.98,22.37,10.93c4.28,1.81,8.79,3.58,13.52,5.3c0.66,0.24,1.11,0.87,1.11,1.58
+		v42.2c0,3.09-0.5,6.08-1.47,8.82c-3.16,8.86-11.68,24.44-34.03,35.51c-0.93,0.46-2.06,0.46-2.99,0
+		c-22.35-11.07-30.86-26.64-34-35.44c-0.99-2.82-1.5-5.81-1.5-8.89v-42.2c0-0.7,0.45-1.33,1.11-1.58c4.45-1.63,8.76-3.31,12.89-5.03
+		C183.86,217.52,191.41,213.7,197.19,210.37 M197.19,183.32c-1.05,0-2.09,0.33-2.98,0.98c-4.15,3.09-13.07,8.83-29.11,15.54
+		c-6.93,2.89-15.19,5.99-24.97,9.12c-2.07,0.66-3.48,2.61-3.48,4.79v56.62c0,5.7,0.94,11.35,2.84,16.73
+		c5.1,14.28,18.95,38.86,55.88,53.14c0.58,0.23,1.2,0.34,1.82,0.34s1.24-0.11,1.82-0.34c36.93-14.28,50.79-38.86,55.88-53.14
+		c1.9-5.38,2.84-11.03,2.84-16.73v-56.62c0-2.19-1.41-4.14-3.48-4.79c-10.06-3.21-18.48-6.37-25.53-9.35
+		c-15.69-6.61-24.45-12.24-28.56-15.3C199.29,183.64,198.24,183.32,197.19,183.32L197.19,183.32z"/>
+	<linearGradient id="plug" gradientUnits="userSpaceOnUse" x1="225.1797" y1="143.6897" x2="171.7845" y2="182.9303">
+		<stop offset="0" style="stop-color:#F2F2F2"/>
+		<stop offset="0.2422" style="stop-color:#EEEEEE"/>
+		<stop offset="0.5033" style="stop-color:#E1E1E1"/>
+		<stop offset="0.7722" style="stop-color:#CBCBCB"/>
+		<stop offset="1" style="stop-color:#B3B3B3"/>
+	</linearGradient>
+	<path fill="url(#plug)" d="M223.68,135.98h-53.53c-2.77,0-5.05,2.27-5.05,5.05v49.66c13.52-5.9,20.9-10.78,24.1-13.13
+		c2.32-1.73,5.1-2.64,7.99-2.64s5.67,0.91,7.99,2.64c3.14,2.32,10.38,7.1,23.54,12.88v-49.41
+		C228.73,138.25,226.46,135.98,223.68,135.98z M190.79,162.32c0,1.85-1.51,3.36-3.36,3.36h-5.57c-1.85,0-3.36-1.5-3.36-3.35v-7.37
+		c0-1.85,1.51-3.36,3.36-3.36h5.57c1.85,0,3.36,1.51,3.36,3.36V162.32z M215.91,162.34c0,1.85-1.51,3.36-3.36,3.36h-5.58
+		c-1.85,0-3.36-1.51-3.36-3.36v-7.37c0-1.85,1.51-3.36,3.36-3.36h5.58c1.85,0,3.36,1.51,3.36,3.36V162.34z"/>
+</svg>

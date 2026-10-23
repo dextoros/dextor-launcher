@@ -140,6 +140,12 @@ public sealed class LauncherWindowLayoutTests
         // The footer carries the running version, so an old copy can always be told from a new one.
         footer.Controls.Cast<Control>().Should().Contain(control => control.Text == "launcher.brand.footer  ·  v" + LauncherBranding.DisplayVersion);
         LauncherBranding.DisplayVersion.Should().NotBeNullOrWhiteSpace().And.NotContain("+");
+        // The launcher's own version, not the entry assembly's: under a test host that was the
+        // host's 17.11.0, and it ended up on the published screenshots.
+        var launcherVersion = typeof(LauncherBranding).Assembly
+            .GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false)
+            .OfType<System.Reflection.AssemblyInformationalVersionAttribute>().Single().InformationalVersion;
+        LauncherBranding.DisplayVersion.Should().Be(launcherVersion.Split('+')[0]);
         window.Controls.Find("DexTorBrandSiteLink", true).Single().Tag.Should().Be("https://dextoros.com/");
     }
 

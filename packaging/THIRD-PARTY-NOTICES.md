@@ -206,21 +206,47 @@ bundled firmware use other compatible licenses.
 
 - Project: https://www.qemu.org/ · License: https://www.qemu.org/license/
 - Pinned version: QEMU 11.1.0, Stefan Weil's QEMU for Windows x64
-- Official Windows build: https://qemu.weilnetz.de/w64/2026/qemu-w64-setup-20260811.exe,
+- Windows build: Stefan Weil's installer `qemu-w64-setup-20260811.exe`,
   SHA-512 `5bcf9eed634e8575a37b74f445af41a2fe4106da512d0c30c368301d4c105037fdfab40a5287367a28a957624cddebbc8c07e16c88ab6634f554cdf3d16bf543`
-- Corresponding source: https://download.qemu.org/qemu-11.1.0.tar.xz
-  (signature: https://download.qemu.org/qemu-11.1.0.tar.xz.sig)
+  - DexTor's mirror (unmodified copy, same SHA-512):
+    https://github.com/dextoros/qemu-runtime/releases/tag/qemu-11.1.0-20260811
+  - Original: https://qemu.weilnetz.de/w64/2026/qemu-w64-setup-20260811.exe
+- Corresponding source, attached to the mirror release next to the installer:
+  - The tree the installer was built from: Stefan Weil's QEMU tree at
+    https://repo.or.cz/qemu/ar7.git, commit `e470268ff446ec56728215a987ed166d5ed8fb64` (the
+    `v11.1.0` tag merged into his tree; `qemu-system-x86_64 --version` reports
+    `v11.1.0-12130-ge470268ff4`), as `qemu-weilnetz-e470268ff446.tar.xz`.
+  - QEMU 11.1.0 with the firmware sources: https://download.qemu.org/qemu-11.1.0.tar.xz
+    (signature: https://download.qemu.org/qemu-11.1.0.tar.xz.sig). The firmware in the
+    installer is identical to the images built from it.
+  - The installer also contains third-party DLLs from MSYS2's MinGW-w64 packages, each under
+    its own license; the mirror release lists them with their source packages.
 
 **Portable launcher.** QEMU is not part of the executable. When DexTor OS is first started inside
-Windows, the launcher downloads the official build above, checks its SHA-512, and unpacks it into
-`%LOCALAPPDATA%\DexTor\Runtime` without administrator rights. You receive QEMU from its
-publisher, under its publisher's terms.
+Windows, the launcher downloads the installer above - from DexTor's mirror, or from
+qemu.weilnetz.de if the mirror cannot be reached - checks its SHA-512, and unpacks it into
+`%LOCALAPPDATA%\DexTor\Runtime` without administrator rights. The mirror hosts Stefan Weil's file
+unchanged; DexTor does not build or modify QEMU. QEMU stays under its own licenses above, and
+the mirror release carries the corresponding source.
 
 **Installer.** A `SignedRelease` installer contains a minimal subset of that same build
 (`qemu-system-x86_64.exe`, its runtime libraries and the x86 firmware), listed with SHA-256
 hashes in `runtime/qemu/qemu-runtime-files.json` inside the installed application, together with
 the license files above. Every installer we publish that contains QEMU comes with the
-corresponding QEMU source archive attached to the same release.
+corresponding QEMU source archives listed above attached to the same release.
+
+**Microsoft Store package.** The Store package contains that same build of QEMU, unmodified, in
+`runtime\qemu` (listed with SHA-256 hashes in `runtime\qemu\qemu-runtime-files.json`, next to
+QEMU's `COPYING` and `COPYING.LIB`), and never downloads QEMU. Its corresponding source is the
+mirror release above.
+
+**Written offer.** For at least three years after we last distribute a given version of the
+launcher, its installer or its Store package, we will give any third party, on request, a
+complete machine-readable copy of the corresponding source code of QEMU and of every library in
+it licensed under the GNU GPL, LGPL or AGPL, as we distributed them - free of charge as a
+download, or on a physical medium for no more than our cost of making and shipping it. Ask
+through https://github.com/dextoros/qemu-runtime/issues. This offer is in addition to the source
+archives already published next to the binaries.
 
 ## WiX Toolset
 

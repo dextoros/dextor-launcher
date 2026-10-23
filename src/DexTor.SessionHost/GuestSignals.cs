@@ -37,15 +37,19 @@ public sealed class GuestSignals : IAsyncDisposable
     private readonly NamedPipeClientStream _pipe;
     private readonly CancellationTokenSource _stop = new();
     private Task? _reader;
+    private readonly Lock _gate = new();
     private volatile bool _frame;
     private volatile bool _desktop;
-    private readonly TaskCompletionSource _frameSeen = new(TaskCreationOptions.RunContinuationsAsynchronously);
-    private readonly TaskCompletionSource _desktopSeen = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private TaskCompletionSource _frameSeen = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private TaskCompletionSource _desktopSeen = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private GuestSignals(string pipeName)
     {
         _pipe = new NamedPipeClientStream(".", pipeName, PipeDirection.In, PipeOptions.Asynchronous);
     }
+
+    /// <summary>Signals that are never connected, for tests that feed lines to <see cref="Handle"/>.</summary>
+    internal static GuestSignals Unconnected() => new($"dextor-ctl-unconnected-{Guid.NewGuid():N}");
 
     /// <summary>The guest has said it draws.</summary>
     public bool FrameReady => _frame;
@@ -54,10 +58,32 @@ public sealed class GuestSignals : IAsyncDisposable
     public bool DesktopReady => _desktop;
 
     /// <summary>Completes when "frame" arrives: the window opens at that moment, not at the next look.</summary>
-    public Task Frame => _frameSeen.Task;
+    public Task Frame
+    {
+        get { lock (_gate) return _frameSeen.Task; }
+    }
 
     /// <summary>Completes when "desktop" arrives.</summary>
-    public Task Desktop => _desktopSeen.Task;
+    public Task Desktop
+    {
+        get { lock (_gate) return _desktopSeen.Task; }
+    }
+
+    /// <summary>
+    /// The guest has restarted (QMP RESET): what it said before belongs to the boot that ended.
+    /// It boots again from the firmware and says "frame" and "desktop" again; until then the
+    /// launcher treats it as starting.
+    /// </summary>
+    public void Restart()
+    {
+        lock (_gate)
+        {
+            _frame = false;
+            _desktop = false;
+            if (_frameSeen.Task.IsCompleted) _frameSeen = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            if (_desktopSeen.Task.IsCompleted) _desktopSeen = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        }
+    }
 
     /// <summary>Raised on the reader's thread for every signal.</summary>
     public event Action<GuestSignal>? Received;
@@ -118,13 +144,17 @@ public sealed class GuestSignals : IAsyncDisposable
         }
     }
 
-    private void Handle(string line)
+    internal void Handle(string line)
     {
         if (Parse(line) is not { } signal) return;
-        if (signal == GuestSignal.Frame) _frame = true;
-        if (signal == GuestSignal.Desktop) _desktop = _frame = true;
-        _frameSeen.TrySetResult();
-        if (signal == GuestSignal.Desktop) _desktopSeen.TrySetResult();
+        lock (_gate)
+        {
+            if (signal == GuestSignal.Frame) _frame = true;
+            if (signal == GuestSignal.Desktop) _desktop = _frame = true;
+            _frameSeen.TrySetResult();
+            if (signal == GuestSignal.Desktop) _desktopSeen.TrySetResult();
+        }
+
         Received?.Invoke(signal);
     }
 

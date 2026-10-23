@@ -311,6 +311,67 @@ public sealed class SessionOwnershipLifecycleTests : IDisposable
         ReadJournal().GetProperty("guestShutdown").GetString().Should().Be(
             nameof(GuestShutdownEvidence.ProcessExitOnly),
             "a process that vanished explained nothing about how the guest stopped");
+        // Still a crash to the launcher: "DexTor OS stopped unexpectedly" with this reason.
+        (await WaitUntilAsync(() => service.LastError is not null)).Should().BeTrue();
+        service.LastError.Should().Contain("QEMU closed unexpectedly");
+        service.EndedByGuestShutdown.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ARestartFromInsideKeepsTheSameSessionClaimAndQemu()
+    {
+        await using var service = CreateService();
+        await service.StartAsync(_usb);
+        var processId = _standIn.ReadProcessId();
+
+        // QEMU without -no-reboot reports RESET and runs on; the guest boots again in it.
+        _standIn.RestartGuest();
+
+        (await WaitUntilAsync(() => service.GuestRestarts == 1)).Should().BeTrue();
+        service.State.Should().Be(SessionState.Running, "a restart is not the end of the session");
+        service.LastError.Should().BeNull("nothing went wrong, so the launcher has nothing to report");
+        ProcessHasTerminated(processId).Should().BeFalse("the guest resets inside the same QEMU");
+        OwnershipIsFree().Should().BeFalse("the device stays claimed across the restart: no second session can start on it");
+        ReadJournal().GetProperty("state").GetString().Should().Be("running");
+
+        // The session ends as any other does, once, with the guest's own shutdown as evidence.
+        var report = await service.StopAsync();
+        report.WriterTermination.Should().Be(WriterTerminationResult.Confirmed);
+        report.GuestShutdown.Should().Be(GuestShutdownEvidence.ObservedGuestInitiated);
+        OwnershipIsFree().Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task AShutdownFromInsideIsACleanStopNotACrash()
+    {
+        await using var service = CreateService();
+        await service.StartAsync(_usb);
+
+        _standIn.ShutDownGuest();
+
+        (await WaitUntilAsync(() => service.State == SessionState.SafeToEject)).Should().BeTrue();
+        service.LastError.Should().BeNull();
+        service.EndedByGuestShutdown.Should().BeTrue("the launcher says DexTor OS was shut down, not that it crashed");
+        ReadJournal().GetProperty("guestShutdown").GetString().Should().Be(nameof(GuestShutdownEvidence.ObservedGuestInitiated));
+        (await WaitUntilAsync(OwnershipIsFree)).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task AGuestThatKeepsRestartingIsStoppedAndReportedAsACrash()
+    {
+        await using var service = CreateService();
+        await service.StartAsync(_usb);
+
+        for (var restart = 1; restart <= SessionHostService.RestartLoopLimit; restart++)
+        {
+            _standIn.RestartGuest();
+            (await WaitUntilAsync(() => service.GuestRestarts == restart)).Should().BeTrue();
+        }
+
+        (await WaitUntilAsync(() => service.State == SessionState.SafeToEject)).Should().BeTrue();
+        service.LastError.Should().Contain($"restarted {SessionHostService.RestartLoopLimit} times");
+        service.EndedByGuestShutdown.Should().BeFalse("a restart loop is a crash, even though the guest answered the power button");
+        (await WaitUntilAsync(OwnershipIsFree)).Should().BeTrue();
     }
 
     [Fact]

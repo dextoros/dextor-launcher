@@ -149,6 +149,115 @@ public sealed class LauncherWizardWindowTests
         finish.SetResult(new CreatorActionService.CreateUsbResult(false, @"E:\", CreatorActionService.CreateTransaction(), "stop"));
         await creating;
     }
+
+    [Fact]
+    public Task TheCreatingCardRepaintsWholeWhenTheChartAppearsUnderTheStages() => RunWithMessageLoop(async () =>
+    {
+        // Testers saw the card's bottom edge from before the chart drawn across the chart:
+        // a card that grows must repaint its old edge, not only the strip that was added.
+        var go = new TaskCompletionSource();
+        var reported = new TaskCompletionSource();
+        var finish = new TaskCompletionSource<CreatorActionService.CreateUsbResult>();
+        using var window = new LauncherWizardWindow(
+            new TestLocalizer(),
+            CreateDependencies(
+                ReadyImageInspection(),
+                inspectUsb: () => [new UsbDriveSnapshot(@"E:\", "USB", "exFAT", 64L * 1024 * 1024 * 1024, 60L * 1024 * 1024 * 1024, true, true,
+                    new UsbPhysicalIdentity(7, "id", "serial", 64L * 1024 * 1024 * 1024, "USB", "Stick", false, false, false))],
+                create: async (_, progress) =>
+                {
+                    await go.Task;
+                    progress.Report(new CreatorActionService.CreatorStepProgress(CreatorStep.WriteSystemImage, CreatorActionService.CreatorStepStatus.Info,
+                        "launcher.wizard.create.provisioner_writingsystemimage", BytesDone: 1L << 30, BytesTotal: 4L << 30));
+                    reported.SetResult();
+                    return await finish.Task;
+                }));
+        window.StartPosition = FormStartPosition.Manual;
+        window.Location = new Point(-32000, -32000);
+        window.ShowInTaskbar = false;
+        window.Show();
+        await window.AdvanceAsync();
+        await window.AdvanceAsync();
+        await window.AdvanceAsync();
+        var creating = window.AdvanceAsync();
+        await Task.Delay(100);
+
+        var card = window.Controls.Find("WizardStatusCard", true).Single();
+        card.IsHandleCreated.Should().BeTrue();
+        var before = card.Height;
+        var repainted = new List<Rectangle>();
+        card.Invalidated += (_, e) => repainted.Add(e.InvalidRect);
+        go.SetResult();
+        await reported.Task;
+        await Task.Delay(100);
+
+        window.Controls.Find("WizardTransferStats", true).Single().Visible.Should().BeTrue();
+        card.Height.Should().BeGreaterThan(before, "the chart and its figures come in under the stages");
+        var oldEdge = new Rectangle(0, before - 2, card.Width, 2);
+        repainted.Should().Contain(area => area.Contains(oldEdge), "the old bottom edge must be painted over");
+        finish.SetResult(new CreatorActionService.CreateUsbResult(false, @"E:\", CreatorActionService.CreateTransaction(), "stop"));
+        await creating;
+        window.Hide();
+    });
+
+    /// <summary>
+    /// Runs the body on an STA thread with a WinForms message loop, as the launcher runs:
+    /// progress reports and awaits come back to the window's thread and paint as they would.
+    /// </summary>
+    private static Task RunWithMessageLoop(Func<Task> body)
+    {
+        var done = new TaskCompletionSource();
+        var thread = new Thread(() =>
+        {
+            var context = new WindowsFormsSynchronizationContext();
+            SynchronizationContext.SetSynchronizationContext(context);
+            context.Post(async _ =>
+            {
+                try
+                {
+                    await body();
+                    done.SetResult();
+                }
+                catch (Exception exception)
+                {
+                    done.SetException(exception);
+                }
+                finally
+                {
+                    System.Windows.Forms.Application.ExitThread();
+                }
+            }, null);
+            System.Windows.Forms.Application.Run();
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        return done.Task;
+    }
+
+    [Theory]
+    [MemberData(nameof(Languages))]
+    public async Task TheReadyNoticeTakesAtMostTwoLinesAndTheCardFitsTheWindow(string language)
+    {
+        using var window = new LauncherWizardWindow(new Localizer(language), CreateDependencies(ReadyImageInspection(), [@"E:\"]));
+        window.CreateControl();
+        await window.AdvanceAsync();
+        await window.AdvanceAsync();
+        await window.AdvanceAsync();
+        await window.AdvanceAsync();
+        window.CurrentStep.Should().Be(LauncherWizardStep.Complete);
+        PerformLayoutRecursively(window);
+
+        var notice = window.Controls.Find("WizardEjectNotice", true).Single();
+        notice.Text.Should().NotStartWith("launcher.");
+        // Two lines of 20 with 11 above and below: the orange block as the design draws it.
+        notice.Height.Should().BeLessThanOrEqualTo(WizardDesign.S(20) * 2 + WizardDesign.S(11) * 2, notice.Text);
+        var card = window.Controls.Find("WizardStatusCard", true).Single();
+        var page = window.Controls.Find("WizardPage", true).Single();
+        card.Bottom.Should().BeLessThanOrEqualTo(page.ClientSize.Height);
+        AssertInfoCardsFit(window);
+    }
+
+    public static TheoryData<string> Languages() => new(LocaleCatalog.SupportedLanguages);
     [Fact]
     public void AStickPluggedInOrRemovedIsRecognizedFromTheDeviceBroadcast()
     {
@@ -294,6 +403,19 @@ public sealed class LauncherWizardWindowTests
         window.Text.Should().Be("Настройка DexTor OS");
         window.Controls.Find("WizardPageTitle", true).Single().Text.Should().Be("Создайте USB-накопитель с DexTor OS");
         window.Controls.Find("WizardStepLabelIntro", true).Single().Text.Should().Be("Начало");
+    }
+
+    [Fact]
+    public void ALanguagePickedInTheFooterIsKeptForTheNextStart()
+    {
+        var saved = new List<string>();
+        using var window = new LauncherWizardWindow(new Localizer("en"), CreateDependencies(saveLanguage: saved.Add));
+        window.CreateControl();
+        var selector = (LauncherBranding.ThemedLanguageSelector)window.Controls.Find("DexTorLanguageSelector", true).Single();
+
+        selector.SelectLanguage("uk");
+
+        saved.Should().Equal("uk");
     }
 
     [Fact]
@@ -631,6 +753,107 @@ public sealed class LauncherWizardWindowTests
         ((Control)typeof(LauncherWizardWindow).GetField("_pageProgress", BindingFlags.Instance | BindingFlags.NonPublic)!
             .GetValue(window)!).Visible.Should().BeFalse();
         window.Controls.Find("WizardPrimaryButton", true).Single().Text.Should().Be("launcher.primary_action_start_dextor");
+    }
+
+    [Theory]
+    [InlineData(true, null, "DexTor OS was shut down")]
+    [InlineData(false, null, "DexTor OS stopped unexpectedly")]
+    [InlineData(false, "QEMU closed unexpectedly.", "DexTor OS stopped unexpectedly")]
+    [InlineData(true, "DexTor OS restarted 3 times within a minute, so it was stopped.", "DexTor OS stopped unexpectedly")]
+    public async Task AShutdownFromInsideIsNotReportedAsAnUnexpectedStop(bool byGuest, string? error, string expectedStatus)
+    {
+        var state = SessionState.Running;
+        using var window = new LauncherWizardWindow(
+            new Localizer("en"),
+            CreateDependencies(
+                ReadyImageInspection(),
+                [@"E:\"],
+                start: (_, progress) =>
+                {
+                    progress.Report(new SessionStartProgress(SessionStartStage.Running));
+                    return Task.CompletedTask;
+                },
+                getSessionState: () => state,
+                getSessionError: () => error,
+                endedByGuestShutdown: () => byGuest));
+        window.CreateControl();
+        for (var step = 0; step < 5; step++) await window.AdvanceAsync();
+
+        state = SessionState.SafeToEject;
+        typeof(LauncherWizardWindow).GetMethod("ObserveVmState", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .Invoke(window, null);
+
+        var status = window.Controls.Find("WizardStatusTitle", true).Single();
+        status.Text.Should().Be(expectedStatus);
+        // Red only for a crash.
+        (status.ForeColor == WizardDesign.Error).Should().Be(!(byGuest && error is null));
+        if (error is not null) AllText(window).Should().Contain(text => text.Contains(error, StringComparison.Ordinal));
+        // Either way DexTor OS can be started again.
+        window.Controls.Find("WizardPrimaryButton", true).Single().Text.Should().Be("Start DexTor OS");
+    }
+
+    [Fact]
+    public async Task ChangingLanguageKeepsTheSessionCardRunningAndAfterAnUnexpectedStop()
+    {
+        var state = SessionState.Running;
+        using var window = new LauncherWizardWindow(
+            new Localizer("en"),
+            CreateDependencies(
+                ReadyImageInspection(),
+                [@"E:\"],
+                start: (_, progress) =>
+                {
+                    progress.Report(new SessionStartProgress(SessionStartStage.Running));
+                    return Task.CompletedTask;
+                },
+                getSessionState: () => state,
+                getSessionError: () => "QEMU closed unexpectedly."));
+        window.CreateControl();
+        for (var step = 0; step < 5; step++) await window.AdvanceAsync();
+        var changeLanguage = typeof(LauncherWizardWindow).GetMethod("ChangeLanguage", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        Control PrimaryButton() => window.Controls.Find("WizardPrimaryButton", true).Single();
+
+        // While DexTor OS runs: the same card in the new language, and the button still says
+        // what it does. It used to fall back to "what next" with "Start DexTor OS" on a
+        // button that stopped the running VM.
+        changeLanguage.Invoke(window, ["ru"]);
+
+        window.CurrentStep.Should().Be(LauncherWizardStep.Complete);
+        AllText(window).Should().Contain("DexTor OS запущена");
+        AllText(window).Should().Contain(text => text.Contains("Запуск виртуального компьютера", StringComparison.Ordinal));
+        window.Controls.Find("WizardLaunchStages", true).Should().ContainSingle();
+        PrimaryButton().Text.Should().Be("Остановить DexTor OS");
+
+        // After an unexpected stop: what happened stays on screen in the next language too.
+        state = SessionState.SafeToEject;
+        typeof(LauncherWizardWindow).GetMethod("ObserveVmState", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .Invoke(window, null);
+        changeLanguage.Invoke(window, ["uk"]);
+
+        AllText(window).Should().Contain("DexTor OS несподівано зупинилася");
+        AllText(window).Should().Contain(text => text.Contains("Віртуальна машина зупинилася: QEMU closed unexpectedly.", StringComparison.Ordinal));
+        AllText(window).Should().NotContain("DexTor OS неожиданно остановилась");
+        PrimaryButton().Text.Should().Be("Запустити DexTor OS");
+    }
+
+    [Fact]
+    public async Task ChangingLanguageKeepsAFailedStartOnScreen()
+    {
+        const string diagnostic = "QEMU could not be started.";
+        using var window = new LauncherWizardWindow(
+            new Localizer("en"),
+            CreateDependencies(
+                ReadyImageInspection(),
+                [@"E:\"],
+                start: (_, _) => Task.FromException(new InvalidOperationException(diagnostic))));
+        window.CreateControl();
+        for (var step = 0; step < 5; step++) await window.AdvanceAsync();
+
+        typeof(LauncherWizardWindow).GetMethod("ChangeLanguage", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .Invoke(window, ["ru"]);
+
+        window.Controls.Find("WizardLaunchError", true).Should().ContainSingle();
+        AllText(window).Should().Contain(text => text.Contains(diagnostic, StringComparison.Ordinal));
     }
 
     [Fact]
@@ -1262,7 +1485,9 @@ public sealed class LauncherWizardWindowTests
         Func<SessionState>? getSessionState = null,
         Func<string?>? getSessionError = null,
         Func<bool>? isVmPausedForSpace = null,
-        Func<Task<bool>>? resumeDexTor = null)
+        Func<Task<bool>>? resumeDexTor = null,
+        Func<bool>? endedByGuestShutdown = null,
+        Action<string>? saveLanguage = null)
     {
         inspection ??= new LiveImageCacheInspectionResult(
             true,
@@ -1305,6 +1530,8 @@ public sealed class LauncherWizardWindowTests
             ShowEmergencyNotification = showEmergencyNotification ?? ((_, _) => Task.CompletedTask),
             GetSessionState = getSessionState ?? (() => SessionState.Running),
             GetSessionError = getSessionError ?? (() => null),
+            EndedByGuestShutdown = endedByGuestShutdown,
+            SaveLanguage = saveLanguage,
             IsVmPausedForSpace = isVmPausedForSpace,
             ResumeDexTor = resumeDexTor
         };

@@ -66,6 +66,12 @@ internal sealed class LauncherWizardDependencies
     internal required Func<SessionState> GetSessionState { get; init; }
     internal required Func<string?> GetSessionError { get; init; }
 
+    /// <summary>Remembers the language the operator picked, for the next start; null keeps nothing.</summary>
+    internal Action<string>? SaveLanguage { get; init; }
+
+    /// <summary>The session ended because DexTor OS shut itself down; null when it cannot tell.</summary>
+    internal Func<bool>? EndedByGuestShutdown { get; init; }
+
     /// <summary>Bytes the stick lacks for the storage to reach its full size; null leaves the check out.</summary>
     internal Func<string, long>? StorageShortfall { get; init; }
 
@@ -246,7 +252,12 @@ internal sealed partial class LauncherWizardWindow : Form
         {
             Name = "DexTorBrandCopyright", Text = LauncherBranding.FooterText(localizer)
         };
-        _languageSelector = LauncherBranding.CreateLanguageSelector(localizer, ChangeLanguage);
+        _languageSelector = LauncherBranding.CreateLanguageSelector(localizer, language =>
+        {
+            // Kept at once, even when the page changes language only after the current work.
+            _dependencies.SaveLanguage?.Invoke(language);
+            ChangeLanguage(language);
+        });
         _languageSelector.Size = S(170, 40);
         _languageSelector.Font = WizardFonts.Get(14, 600);
         _languageSelector.BackColor = WizardDesign.Secondary;
@@ -2083,6 +2094,95 @@ internal sealed partial class LauncherWizardWindow : Form
         card.Controls.Add(_launchElapsed);
         card.Controls.SetChildIndex(_launchElapsed, at + 1);
         AddToPage(panel, card);
+        _onLaunchPage = true;
+    }
+
+    /// <summary>The page is the launch card (<see cref="BuildLaunchPage"/>).</summary>
+    private bool _onLaunchPage;
+
+    /// <summary>
+    /// What the launch card says now, kept as something that can be said again: a language
+    /// change rebuilds the card and runs it once more, so the session's state - starting,
+    /// running, stopped unexpectedly, stopped - is told in the new language instead of the
+    /// card being replaced by the "what next" page.
+    /// </summary>
+    private Action? _launchView;
+
+    /// <summary>Why the last start failed, while that page is shown, so it can be shown again.</summary>
+    private string? _launchFailure;
+
+    /// <summary>Shows <paramref name="view"/> on the launch card and keeps it for a language change.</summary>
+    private void ShowLaunchView(Action view)
+    {
+        if (_onLaunchPage) _launchView = view;
+        view();
+    }
+
+    /// <summary>The launch card's status and detail; the texts are looked up each time they are shown.</summary>
+    private void ShowLaunchText(Func<string> status, Func<string> detail, Color? statusColor = null) =>
+        ShowLaunchView(() =>
+        {
+            if (_pageStatus is null || _pageDetail is null) return;
+            _pageStatus.Text = status();
+            _pageDetail.Text = detail();
+            if (statusColor is { } color) _pageStatus.ForeColor = color;
+        });
+
+    /// <summary>
+    /// The launch card again, in the current language and in the state the session is in: the
+    /// bar, the boot's steps, the status and detail, and the button that matches what a click does.
+    /// </summary>
+    private void RebuildLaunchPage()
+    {
+        var view = _launchView;
+        var bar = _pageProgress is { IsDisposed: false } old
+            ? (old.Visible, old.IsIndeterminate, old.Maximum, old.Value)
+            : ((bool Visible, bool IsIndeterminate, int Maximum, int Value)?)null;
+        var slow = _slowNotice is { IsDisposed: false };
+        _slowNotice = null;
+        BuildLaunchPage();
+        if (_pageProgress is { } progress && bar is { } shown)
+        {
+            progress.Visible = shown.Visible;
+            progress.IsIndeterminate = shown.IsIndeterminate;
+            progress.Maximum = shown.Maximum;
+            progress.Value = shown.Value;
+        }
+
+        if (_bootClock.IsRunning && !_bootDownloading)
+        {
+            ShowBootProgress();
+        }
+        else if (!_bootClock.IsRunning)
+        {
+            _launchStages?.Advance(VmBootProgress.StageKeys.Length - 1, finished: true);
+            if (_launchElapsed is not null) _launchElapsed.Visible = false;
+        }
+
+        if (view is not null) ShowLaunchView(view);
+        ConfigureLaunchActions();
+        if (slow) ShowSlowStart();
+    }
+
+    /// <summary>The primary button for the session's state, matching what HandlePrimaryAsync does on a click.</summary>
+    private void ConfigureLaunchActions()
+    {
+        if (_launching)
+        {
+            ConfigureActions(false, _localizer.T("launcher.wizard.vm.launching_button"), false, PrimaryMark.Spinner);
+        }
+        else if (_vmRunning && _vmPausedForSpace)
+        {
+            ConfigureActions(false, _localizer.T("launcher.wizard.vm.resume"), true, PrimaryMark.Play);
+        }
+        else if (_vmRunning || _ejectAvailable || _vmHasRun)
+        {
+            ConfigureActions(false, _localizer.T(NextCompleteActionKey()), true, PrimaryMark.None);
+        }
+        else
+        {
+            ConfigureActions(false, _localizer.T("launcher.primary_action_start_dextor"), true, PrimaryMark.Play);
+        }
     }
 
     private StageChecklist? _launchStages;
@@ -2173,6 +2273,7 @@ internal sealed partial class LauncherWizardWindow : Form
         var card = CreateInfoPanel();
         card.Name = "WizardStatusCard";
         card.Controls.Add(CreateCaption(_localizer.T("launcher.wizard.vm.launch_caption")));
+        _launchFailure = reason;
         var block = new ErrorBlock(S(RowWidth), _localizer.T("launcher.wizard.vm.failed"), _localizer.T("launcher.wizard.vm.failed_detail")) { Name = "WizardLaunchError" };
         card.Controls.Add(block);
         _pageStatus = block.TitleText;
@@ -2305,8 +2406,7 @@ internal sealed partial class LauncherWizardWindow : Form
                     StopBootProgress(booted: true);
                     _pageProgress.IsIndeterminate = false;
                     _pageProgress.Value = _pageProgress.Maximum;
-                    _pageStatus.Text = _localizer.T("launcher.wizard.vm.running");
-                    _pageDetail.Text = _localizer.T("launcher.wizard.vm.running_details");
+                    ShowLaunchText(() => _localizer.T("launcher.wizard.vm.running"), () => _localizer.T("launcher.wizard.vm.running_details"));
                     return;
                 }
 
@@ -2319,13 +2419,14 @@ internal sealed partial class LauncherWizardWindow : Form
                     _pageProgress.IsIndeterminate = false;
                     _pageProgress.Maximum = 100;
                     _pageProgress.Value = percent;
-                    _pageStatus.Text = _localizer.T(SessionStageKey(update.Stage));
-                    _pageDetail.Text = _localizer.T("launcher.wizard.image.progress", Args(
-                        ("percent", percent.ToString(CultureInfo.InvariantCulture)),
-                        ("downloaded", FormatBytes(update.BytesDownloaded)),
-                        ("total", FormatBytes(total)),
-                        ("speed", update.BytesPerSecond is { } speed ? FormatBytesPerSecond(speed) : "—"),
-                        ("eta", update.EstimatedRemaining is { } eta ? FormatDuration(eta) : "—")));
+                    ShowLaunchText(
+                        () => _localizer.T(SessionStageKey(update.Stage)),
+                        () => _localizer.T("launcher.wizard.image.progress", Args(
+                            ("percent", percent.ToString(CultureInfo.InvariantCulture)),
+                            ("downloaded", FormatBytes(update.BytesDownloaded)),
+                            ("total", FormatBytes(total)),
+                            ("speed", update.BytesPerSecond is { } speed ? FormatBytesPerSecond(speed) : "—"),
+                            ("eta", update.EstimatedRemaining is { } eta ? FormatDuration(eta) : "—"))));
                 }
                 else if (update.Stage == SessionStartStage.GuestSlow)
                 {
@@ -2336,14 +2437,14 @@ internal sealed partial class LauncherWizardWindow : Form
                     _bootDownloading = false;
                     _bootProgress?.Observe(update.Stage);
                     ShowBootProgress();
-                    _pageStatus.Text = _localizer.T("launcher.wizard.vm.starting");
-                    _pageDetail.Text = _localizer.T(update.Stage switch
+                    var detailKey = update.Stage switch
                     {
                         SessionStartStage.GuestFirmware => "launcher.wizard.vm.boot_firmware",
                         SessionStartStage.GuestLoadingSystem => "launcher.wizard.vm.boot_system",
                         SessionStartStage.GuestShowing => "launcher.wizard.vm.boot_window",
                         _ => "launcher.wizard.vm.starting_patience"
-                    });
+                    };
+                    ShowLaunchText(() => _localizer.T("launcher.wizard.vm.starting"), () => _localizer.T(detailKey));
                 }
             });
             // Off the UI thread: preparing the runtime and the stick took seconds before the
@@ -2358,8 +2459,7 @@ internal sealed partial class LauncherWizardWindow : Form
             _vmStateTimer.Start();
             _pageProgress.IsIndeterminate = false;
             _pageProgress.Value = _pageProgress.Maximum;
-            _pageStatus.Text = _localizer.T("launcher.wizard.vm.running");
-            _pageDetail.Text = _localizer.T("launcher.wizard.vm.running_details");
+            ShowLaunchText(() => _localizer.T("launcher.wizard.vm.running"), () => _localizer.T("launcher.wizard.vm.running_details"));
             MoveToTray();
         }
         catch (Exception exception)
@@ -2394,7 +2494,7 @@ internal sealed partial class LauncherWizardWindow : Form
         SetBusy(true);
         _pageProgress.Visible = true;
         _pageProgress.IsIndeterminate = true;
-        _pageStatus.Text = _localizer.T("launcher.wizard.vm.stopping");
+        ShowLaunchView(() => { if (_pageStatus is not null) _pageStatus.Text = _localizer.T("launcher.wizard.vm.stopping"); });
 
         // Progress<T> posts to the captured context, so these land on the UI thread.
         var progress = new Progress<SessionFinalizationStage>(ReportFinalizationStage);
@@ -2404,17 +2504,15 @@ internal sealed partial class LauncherWizardWindow : Form
             _vmRunning = false;
             _activeVmUsbRoot = null;
             _vmStateTimer.Stop();
-            _pageProgress.Visible = false;
+            if (_pageProgress is not null) _pageProgress.Visible = false;
             ShowFinalizationOutcome(report);
             _ejectAvailable = report.WriterTermination == WriterTerminationResult.Confirmed
                 && !report.CanRemoveUsb;
         }
         catch (Exception exception)
         {
-            _pageProgress.Visible = false;
-            _pageStatus.Text = _localizer.T("launcher.wizard.vm.stop_failed");
-            _pageStatus.ForeColor = ErrorColor;
-            _pageDetail.Text = exception.Message;
+            if (_pageProgress is not null) _pageProgress.Visible = false;
+            ShowLaunchText(() => _localizer.T("launcher.wizard.vm.stop_failed"), () => exception.Message, ErrorColor);
         }
         finally
         {
@@ -2489,12 +2587,12 @@ internal sealed partial class LauncherWizardWindow : Form
         SetBusy(true);
         _pageProgress.Visible = true;
         _pageProgress.IsIndeterminate = true;
-        _pageStatus.Text = _localizer.T("launcher.wizard.vm.requesting_removal");
+        ShowLaunchView(() => { if (_pageStatus is not null) _pageStatus.Text = _localizer.T("launcher.wizard.vm.requesting_removal"); });
         var progress = new Progress<SessionFinalizationStage>(ReportFinalizationStage);
         try
         {
             var report = await _dependencies.EjectDexTor(_lastVmUsbRoot, progress);
-            _pageProgress.Visible = false;
+            if (_pageProgress is not null) _pageProgress.Visible = false;
             ShowFinalizationOutcome(report);
 
             // A veto stays a veto: the action remains available to retry, and nothing
@@ -2503,10 +2601,8 @@ internal sealed partial class LauncherWizardWindow : Form
         }
         catch (Exception exception)
         {
-            _pageProgress.Visible = false;
-            _pageStatus.Text = _localizer.T("launcher.wizard.vm.stop_failed");
-            _pageStatus.ForeColor = ErrorColor;
-            _pageDetail.Text = exception.Message;
+            if (_pageProgress is not null) _pageProgress.Visible = false;
+            ShowLaunchText(() => _localizer.T("launcher.wizard.vm.stop_failed"), () => exception.Message, ErrorColor);
         }
         finally
         {
@@ -2524,7 +2620,7 @@ internal sealed partial class LauncherWizardWindow : Form
     private void ReportFinalizationStage(SessionFinalizationStage stage)
     {
         if (_pageStatus is null) return;
-        _pageStatus.Text = _localizer.T(stage switch
+        var key = stage switch
         {
             SessionFinalizationStage.StoppingGuest => "launcher.wizard.vm.stopping_guest",
             SessionFinalizationStage.ForcingStop => "launcher.wizard.vm.forcing_stop",
@@ -2532,7 +2628,8 @@ internal sealed partial class LauncherWizardWindow : Form
             SessionFinalizationStage.RequestingRemoval => "launcher.wizard.vm.requesting_removal",
             SessionFinalizationStage.TerminationUnconfirmed => "launcher.session.termination_unconfirmed",
             _ => "launcher.wizard.vm.stopping"
-        });
+        };
+        ShowLaunchView(() => { if (_pageStatus is not null) _pageStatus.Text = _localizer.T(key); });
     }
 
     /// <summary>
@@ -2548,11 +2645,10 @@ internal sealed partial class LauncherWizardWindow : Form
         if (_pageStatus is null || _pageDetail is null) return;
 
         var unconfirmed = report.WriterTermination != WriterTerminationResult.Confirmed;
-        _pageStatus.Text = _localizer.T(unconfirmed
-            ? "launcher.wizard.vm.stop_failed"
-            : "launcher.wizard.vm.stopped");
-        _pageStatus.ForeColor = unconfirmed || report.WasForced ? ErrorColor : SuccessColor;
-        _pageDetail.Text = Program.DescribeFinalization(report, _localizer).Trim();
+        ShowLaunchText(
+            () => _localizer.T(unconfirmed ? "launcher.wizard.vm.stop_failed" : "launcher.wizard.vm.stopped"),
+            () => Program.DescribeFinalization(report, _localizer).Trim(),
+            unconfirmed || report.WasForced ? ErrorColor : SuccessColor);
     }
 
     private void ObserveVmState()
@@ -2567,17 +2663,23 @@ internal sealed partial class LauncherWizardWindow : Form
             _pageProgress.IsIndeterminate = false;
             _pageProgress.Visible = false;
         }
-        if (_pageStatus is not null)
+        var error = _dependencies.GetSessionError();
+        if (string.IsNullOrWhiteSpace(error) && _dependencies.EndedByGuestShutdown?.Invoke() == true)
         {
-            _pageStatus.Text = _localizer.T("launcher.wizard.vm.exited");
-            _pageStatus.ForeColor = ErrorColor;
+            // Shut down from inside DexTor OS: the operator's own choice, said as such.
+            ShowLaunchText(
+                () => _localizer.T("launcher.wizard.vm.guest_shutdown"),
+                () => _localizer.T("launcher.wizard.vm.guest_shutdown_details"),
+                SuccessColor);
         }
-        if (_pageDetail is not null)
+        else
         {
-            var error = _dependencies.GetSessionError();
-            _pageDetail.Text = string.IsNullOrWhiteSpace(error)
-                ? _localizer.T("launcher.wizard.vm.exited_details")
-                : _localizer.T("launcher.wizard.vm.exited_with_error", Args(("error", error)));
+            ShowLaunchText(
+                () => _localizer.T("launcher.wizard.vm.exited"),
+                () => string.IsNullOrWhiteSpace(error)
+                    ? _localizer.T("launcher.wizard.vm.exited_details")
+                    : _localizer.T("launcher.wizard.vm.exited_with_error", Args(("error", error))),
+                ErrorColor);
         }
         SetBusy(false);
         ConfigureActions(false, _localizer.T("launcher.primary_action_start_dextor"), true, PrimaryMark.Play);
@@ -2601,18 +2703,11 @@ internal sealed partial class LauncherWizardWindow : Form
         if (paused)
         {
             RestoreFromTray();
-            if (_pageStatus is not null)
-            {
-                _pageStatus.Text = _localizer.T("launcher.wizard.vm.paused_no_space");
-                _pageStatus.ForeColor = ErrorColor;
-            }
-
-            if (_pageDetail is not null)
-            {
-                _pageDetail.Text = _localizer.T("launcher.wizard.vm.paused_no_space_details",
-                    Args(("drive", _activeVmUsbRoot?.TrimEnd('\\') ?? "USB")));
-            }
-
+            var drive = _activeVmUsbRoot?.TrimEnd('\\') ?? "USB";
+            ShowLaunchText(
+                () => _localizer.T("launcher.wizard.vm.paused_no_space"),
+                () => _localizer.T("launcher.wizard.vm.paused_no_space_details", Args(("drive", drive))),
+                ErrorColor);
             ConfigureActions(false, _localizer.T("launcher.wizard.vm.resume"), true, PrimaryMark.Play);
             return;
         }
@@ -2639,13 +2734,10 @@ internal sealed partial class LauncherWizardWindow : Form
 
     private void ShowVmRunningAgain()
     {
-        if (_pageStatus is not null)
-        {
-            _pageStatus.Text = _localizer.T("launcher.wizard.vm.running");
-            _pageStatus.ForeColor = WizardDesign.Text;
-        }
-
-        if (_pageDetail is not null) _pageDetail.Text = _localizer.T("launcher.wizard.vm.running_details");
+        ShowLaunchText(
+            () => _localizer.T("launcher.wizard.vm.running"),
+            () => _localizer.T("launcher.wizard.vm.running_details"),
+            WizardDesign.Text);
         ConfigureActions(false, _localizer.T("launcher.wizard.vm.stop"), true, PrimaryMark.None);
     }
 
@@ -2817,7 +2909,9 @@ internal sealed partial class LauncherWizardWindow : Form
             return;
         }
 
-        if (_busy)
+        // DexTor OS's boot takes a minute or more, all of it "busy": the launch card changes
+        // language at once rather than after the start, since it can be rebuilt in any state.
+        if (_busy && !(_launching && _onLaunchPage))
         {
             // The list stays usable while the wizard works, as in the design; the page
             // changes language once the work is done.
@@ -2864,6 +2958,14 @@ internal sealed partial class LauncherWizardWindow : Form
                 {
                     _ = RunGuardedAsync(RefreshUsbCandidatesAsync);
                 }
+                break;
+            // The session's card, not the "what next" page: replacing it lost what happened to
+            // DexTor OS and put "Start DexTor OS" on a button that stopped the running VM.
+            case LauncherWizardStep.Complete when _onLaunchPage:
+                RebuildLaunchPage();
+                break;
+            case LauncherWizardStep.Complete when _launchFailure is { } failure:
+                ShowLaunchFailed(failure);
                 break;
             case LauncherWizardStep.Create when _lastCreateResult is { Success: false }:
                 ShowCreateFailed(_lastCreateResult);
@@ -2923,6 +3025,9 @@ internal sealed partial class LauncherWizardWindow : Form
         _pageProgress = null;
         _transferStats = null;
         _statusRow = null;
+        _onLaunchPage = false;
+        _launchView = null;
+        _launchFailure = null;
         return page;
     }
 

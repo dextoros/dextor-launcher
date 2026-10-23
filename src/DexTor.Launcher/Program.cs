@@ -24,6 +24,8 @@ public static class Program
     private static Action<string> OpenUrlCallback = OpenUrl;
     private static Func<bool> IsCurrentUserAdminCallback = IsCurrentUserAdmin;
     private static Func<bool> TryEnableVirtualizationCallback = TryEnableVirtualization;
+    private static Func<bool> TryEnableVirtualizationElevatedCallback = ElevatedWhpxEnabler.TryRunElevated;
+    private static Func<bool> IsPackagedCallback = static () => PackagedApp.IsPackaged;
     private static Func<string, ILocalizer, MessageBoxButtons, DialogResult> ConfirmFormatImageCallback = ShowConfirmation;
     private static Func<string, ILocalizer, string?, bool> ConfirmEraseCallback = ShowEraseConfirmation;
 
@@ -37,7 +39,15 @@ public static class Program
             return DexTor.Provisioner.ProvisionerCommand.RunAsync(args[1..]).GetAwaiter().GetResult();
         }
 
-        var localizer = new Localizer();
+        // The Store launcher's elevated copy that only turns on Windows Hypervisor Platform.
+        if (args.Length > 0 && string.Equals(args[0], ElevatedWhpxEnabler.ModeArgument, StringComparison.OrdinalIgnoreCase))
+        {
+            return TryEnableVirtualization() ? 0 : 1;
+        }
+
+        // The language the operator picked last time, else Windows' own.
+        var localizer = new Localizer(LauncherRuntimeState.ResolveStartLanguage());
+
         // Drawn at the display's own scale: the wizard sizes itself in design pixels times the
         // system DPI (WizardDesign.Scale). Unaware, Windows stretched a 100 % bitmap and every
         // text came out soft at 125 %.
@@ -150,10 +160,12 @@ public static class Program
             ShowEmergencyNotification = ShowEmergencyNotificationAsync,
             GetSessionState = () => SessionHostService.State,
             GetSessionError = () => SessionHostService.LastError,
+            EndedByGuestShutdown = () => SessionHostService.EndedByGuestShutdown,
             StorageShortfall = StorageSpace.Shortfall,
             IsVmPausedForSpace = () => SessionHostService.IsPausedForSpace,
             ResumeDexTor = () => SessionHostService.ResumeAfterSpaceFreedAsync(),
-            ShowVmWindowNow = SessionHostService.ShowWindowNow
+            ShowVmWindowNow = SessionHostService.ShowWindowNow,
+            SaveLanguage = LauncherRuntimeState.SaveLanguage
         };
 
         using var window = new LauncherWizardWindow(localizer, dependencies);
@@ -788,7 +800,10 @@ public static class Program
 
     private static async Task<LauncherInlineActionResult> RunPrepareFlowInlineAsync(Localizer localizer)
     {
-        if (!IsCurrentUserAdminCallback())
+        // A Store launcher cannot be started as administrator, so instead of asking for that
+        // it restarts itself elevated for this one step (ElevatedWhpxEnabler).
+        var elevate = !IsCurrentUserAdminCallback();
+        if (elevate && !IsPackagedCallback())
         {
             return new LauncherInlineActionResult(
                 false,
@@ -802,7 +817,7 @@ public static class Program
         var success = false;
         try
         {
-            success = await Task.Run(TryEnableVirtualizationCallback);
+            success = await Task.Run(elevate ? TryEnableVirtualizationElevatedCallback : TryEnableVirtualizationCallback);
             if (success)
             {
                 LauncherRuntimeState.SetPrepareRebootHint();

@@ -104,6 +104,26 @@ internal static class Program
             {
                 return configuration.ExitCode;
             }
+
+            // What the guest does from inside, as QEMU (without -no-reboot) reports it:
+            // "reset" is a restart - RESET, and the process runs on; "shutdown" is the guest
+            // powering off - SHUTDOWN guest-shutdown, and the process ends.
+            if (configuration.GuestActionPath is { Length: > 0 } action && File.Exists(action))
+            {
+                var requested = File.ReadAllText(action).Trim();
+                File.Delete(action);
+                if (string.Equals(requested, "reset", StringComparison.Ordinal))
+                {
+                    Console.Out.WriteLine("""{"event":"RESET","data":{"guest":true,"reason":"guest-reset"}}""");
+                    Console.Out.Flush();
+                }
+                else if (string.Equals(requested, "shutdown", StringComparison.Ordinal))
+                {
+                    Console.Out.WriteLine("""{"event":"SHUTDOWN","data":{"guest":true,"reason":"guest-shutdown"}}""");
+                    Console.Out.Flush();
+                    return configuration.ExitCode;
+                }
+            }
         }
 
         // Reaching the cap means the test never asked it to stop; exiting keeps a failing
@@ -271,6 +291,7 @@ internal static class Program
         public string? StartedPath { get; init; }
         public string? HandshakePath { get; init; }
         public string? ShutdownPath { get; init; }
+        public string? GuestActionPath { get; init; }
         public string? DescendantPidPath { get; init; }
         public bool SpawnDescendant { get; init; }
         public bool HonorPowerdown { get; init; } = true;

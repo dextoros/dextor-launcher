@@ -70,7 +70,10 @@ public static class QemuLaunchPlanBuilder
             "-m", $"{request.MemoryMiB.ToString(System.Globalization.CultureInfo.InvariantCulture)}M",
             // No boot menu prompt and no splash pause: the operator never chooses a boot
             // device here, and "Press ESC for boot menu" was the first thing they read.
-            "-boot", "once=d,menu=off,splash-time=0",
+            // order=, not once=: a restart from inside DexTor OS resets the VM in place, and
+            // once= hands every reset after the first boot QEMU's default order, which puts
+            // the storage disk before the system image.
+            "-boot", "order=d,menu=off,splash-time=0",
             "-drive", $"file={EscapeDriveValue(systemImage.Path)},if=ide,index=2,media=cdrom,readonly=on,format=raw",
             // The storage disk is served on its own I/O thread. Without one, its requests went
             // through QEMU's main loop under the lock the vCPUs need too: while the host wrote
@@ -109,7 +112,10 @@ public static class QemuLaunchPlanBuilder
             "-smbios", $"type=11,value={LauncherOemString}",
             "-display", "sdl,gl=off,grab-mod=rctrl",
             "-qmp", "stdio",
-            "-no-reboot",
+            // No -no-reboot: with it, a restart from inside DexTor OS ended QEMU (SHUTDOWN,
+            // reason guest-reset) and the launcher reported a crash. The guest now resets in
+            // this same process, on the same storage claim, and the launcher covers the window
+            // with its splash until the guest draws again (SessionHostService, on RESET).
             .. (profile.CpuModel is { } cpu ? new[] { "-cpu", cpu } : []),
             // The guest's signals to the launcher. QEMU waits for the launcher to connect to
             // the pipe before it starts the guest; the launcher only reads from it.

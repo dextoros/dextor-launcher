@@ -6,6 +6,7 @@
 
 **One USB drive. DexTor OS in a window on Windows or booted on a compatible PC.**
 
+[![Build](https://github.com/dextoros/dextor-launcher/actions/workflows/build.yml/badge.svg)](https://github.com/dextoros/dextor-launcher/actions/workflows/build.yml)
 [![Platform](https://img.shields.io/badge/platform-Windows%2011%20x64-0f172a?logo=windows11&logoColor=white)](#requirements)
 [![.NET](https://img.shields.io/badge/.NET-10-512bd4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 [![Release](https://img.shields.io/github/v/release/dextoros/dextor-launcher?include_prereleases&color=8b5cf6)](https://github.com/dextoros/dextor-launcher/releases)
@@ -23,8 +24,10 @@ The DexTor OS launcher is a single Windows program that turns an ordinary USB st
 DexTor OS drive, and then starts DexTor OS from it. The same stick works two ways:
 
 - **Inside Windows** - DexTor OS runs in its own window on a pinned, verified QEMU with the
-  Windows Hypervisor Platform. QEMU is downloaded and unpacked into a per-user cache;
-  it is not added to the system `PATH`.
+  Windows Hypervisor Platform. QEMU - Stefan Weil's QEMU for Windows build, unmodified - is
+  downloaded from DexTor's [mirror](https://github.com/dextoros/qemu-runtime) (qemu.weilnetz.de
+  as fallback), checked against a pinned SHA-512 and unpacked into a per-user cache; it is not
+  added to the system `PATH`.
 - **Direct boot** - on a compatible PC, restart and pick the stick in the boot menu.
 
 Both modes provide the same `data.img` on the stick to DexTor OS. The guest OS is responsible
@@ -51,21 +54,21 @@ exactly what it does on a computer and to a USB drive - and what it does not.
 <table>
 <tr>
 <td width="50%"><img src=".github/assets/screenshots/this-pc.png" alt="Checking this PC"><br><sub><b>1. Check this PC</b> - Windows, memory, disk space and virtualization. The check changes nothing.</sub></td>
-<td width="50%"><img src=".github/assets/screenshots/usb-drive.png" alt="Choosing a USB drive"><br><sub><b>2. Choose a USB drive</b> - after the latest image is downloaded and verified.</sub></td>
+<td width="50%"><img src=".github/assets/screenshots/download.png" alt="Downloading and verifying DexTor OS"><br><sub><b>2. Download</b> - the image is used only after its developer signature is verified and its SHA-256 checksum matches.</sub></td>
 </tr>
 <tr>
-<td width="50%"><img src=".github/assets/screenshots/creating.png" alt="Creating the drive"><br><sub><b>3. Create</b> - erase, write, verify, with live progress.</sub></td>
-<td width="50%"><b>4. Ready</b><br>After verification, start DexTor OS in Windows when virtualization is available, or boot from the stick on a compatible PC. Close DexTor OS before removing the USB drive.</td>
+<td width="50%"><img src=".github/assets/screenshots/usb-drive.png" alt="Choosing a USB drive"><br><sub><b>3. Choose a USB drive</b> - nothing is erased until you confirm the exact drive.</sub></td>
+<td width="50%"><img src=".github/assets/screenshots/creating.png" alt="Creating the drive"><br><sub><b>4. Create</b> - erase, write, verify, with live progress.</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src=".github/assets/screenshots/ready.png" alt="The drive is ready"><br><sub><b>5. Ready</b> - start DexTor OS in Windows when virtualization is available, or boot from the stick on a compatible PC.</sub></td>
+<td width="50%"><b>The finished stick</b><br><sub>A hybrid drive: the verified DexTor OS live image with its own UEFI/GRUB boot paths, plus an extra NTFS partition named <code>DEXTOR</code> holding a second copy of the system image and the private <code>data.img</code>.</sub></td>
 </tr>
 </table>
 
 Screenshots show the English v0.1.39 interface. Download sizes, timings and hardware
-values are examples; direct boot depends on compatible hardware. The launcher does not
-guarantee that guest data is erased at shutdown.
-
-The finished stick is a hybrid drive: the verified DexTor OS live image with its own
-UEFI/GRUB boot paths, plus an extra NTFS partition named `DEXTOR` holding a second copy of
-the system image and the private `data.img`.
+values are examples; direct boot depends on compatible hardware. Guest and Secure modes
+are provided by DexTor OS itself, not by the launcher.
 
 ## Architecture
 
@@ -154,13 +157,17 @@ We do not accept pull requests; see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-DexTor OS for Windows is **source-available**, not open source. The code is published under the
-[PolyForm Strict License 1.0.0](LICENSE): you may read, study and audit it, and use it for
-personal and noncommercial purposes, but you may not distribute it, change it or build on it.
+- **Source code:** [PolyForm Strict License 1.0.0](LICENSE).
+- **Using the official release binaries:** [EULA.md](EULA.md) - personal and commercial use allowed.
+
+DexTor OS for Windows is **source-available**, not open source. Under the PolyForm Strict License
+you may read, study and audit the code, but you may not distribute it, change it or build on it.
+The EULA covers the portable executable, the installer and the Microsoft Store package that we
+publish, including use inside companies and other organizations.
 
 Third-party components keep their own licenses - see
 [THIRD-PARTY-NOTICES.md](packaging/THIRD-PARTY-NOTICES.md).
 
 <div align="center">
-<sub>© 2026 DexTor OS Team · <a href="https://dextoros.com">dextoros.com</a></sub>
+<sub>© 2026 DexTor OS · <a href="https://dextoros.com">dextoros.com</a></sub>
 </div>

@@ -180,6 +180,10 @@ internal sealed partial class LauncherWizardWindow
         {
             BackColor = Color.Transparent;
             DoubleBuffered = true;
+            // The surface is drawn to the card's height, so a card that grows - the creating
+            // page's chart appearing under the stages - repaints whole. Otherwise Windows paints
+            // only the strip that was added and the old bottom edge stays across the chart.
+            SetStyle(ControlStyles.ResizeRedraw, true);
             FlowDirection = FlowDirection.TopDown;
             WrapContents = false;
             AutoSize = true;

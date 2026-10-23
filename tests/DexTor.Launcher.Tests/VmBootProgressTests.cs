@@ -108,6 +108,30 @@ public sealed class VmDisplayAndSignalTests
     {
         GuestSignals.Parse(line).Should().BeNull();
     }
+
+    [Fact]
+    public async Task ARestartForgetsTheBootThatEndedAndWaitsForTheNextFrame()
+    {
+        await using var signals = GuestSignals.Unconnected();
+        signals.Handle("frame");
+        signals.Handle("desktop");
+        signals.Frame.IsCompleted.Should().BeTrue();
+
+        signals.Restart();
+
+        // The window is covered again until the new boot draws, and guarded until its desktop.
+        signals.FrameReady.Should().BeFalse();
+        signals.DesktopReady.Should().BeFalse();
+        signals.Frame.IsCompleted.Should().BeFalse();
+        signals.Desktop.IsCompleted.Should().BeFalse();
+
+        signals.Handle("frame");
+        signals.FrameReady.Should().BeTrue();
+        signals.Frame.IsCompleted.Should().BeTrue();
+        signals.Desktop.IsCompleted.Should().BeFalse();
+        signals.Handle("desktop");
+        signals.Desktop.IsCompleted.Should().BeTrue();
+    }
 }
 
 public sealed class VmWindowFittingTests

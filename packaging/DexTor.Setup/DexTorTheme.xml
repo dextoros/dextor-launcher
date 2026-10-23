@@ -174,16 +174,17 @@
     <Page Name="Success">
       <Label X="33" Y="118" Width="-33" Height="44" FontId="1" DisablePrefix="yes">
         <Text>#(loc.SuccessHeader)</Text>
-        <Text Condition="WixBundleAction = 3">#(loc.SuccessUninstallHeader)</Text>
-        <Text Condition="WixBundleAction = 5">#(loc.SuccessInstallHeader)</Text>
-        <Text Condition="WixBundleAction = 7">#(loc.SuccessRepairHeader)</Text>
+        <Text Condition="WixBundleAction = 3 OR WixBundleAction = 4">#(loc.SuccessUninstallHeader)</Text>
+        <Text Condition="WixBundleAction = 6">#(loc.SuccessInstallHeader)</Text>
+        <Text Condition="WixBundleAction = 8">#(loc.SuccessRepairHeader)</Text>
       </Label>
       <Label X="33" Y="178" Width="-33" Height="40" FontId="0" DisablePrefix="yes" VisibleCondition="WixStdBARestartRequired">#(loc.SuccessRestartText)</Label>
-      <!-- Not "WixBundleAction = 5": testers saw an empty page under the heading. Anything but an uninstall shows the texts. -->
-      <Label X="33" Y="178" Width="-33" Height="40" FontId="0" DisablePrefix="yes" VisibleCondition="NOT WixStdBARestartRequired AND WixBundleAction &lt;&gt; 3 AND AddDesktopShortcutCheckbox">#(loc.SuccessInstalledShortcutText)</Label>
-      <Label X="33" Y="178" Width="-33" Height="40" FontId="0" DisablePrefix="yes" VisibleCondition="NOT WixStdBARestartRequired AND WixBundleAction &lt;&gt; 3 AND NOT AddDesktopShortcutCheckbox">#(loc.SuccessInstalledText)</Label>
-      <ImageControl X="33" Y="226" Width="556" Height="52" ImageFile="Assets/success-block.png" VisibleCondition="NOT WixStdBARestartRequired AND WixBundleAction &lt;&gt; 3" />
-      <Label X="89" Y="242" Width="490" Height="20" FontId="7" DisablePrefix="yes" VisibleCondition="NOT WixStdBARestartRequired AND WixBundleAction &lt;&gt; 3">#(loc.SuccessReadyText)</Label>
+      <!-- WiX 6 numbers the actions 3 unsafe uninstall, 4 uninstall, 6 install, 8 repair (WiX 3 had 3, 5, 7).
+           Anything but an uninstall shows the texts. -->
+      <Label X="33" Y="178" Width="-33" Height="40" FontId="0" DisablePrefix="yes" VisibleCondition="NOT WixStdBARestartRequired AND WixBundleAction &lt;&gt; 3 AND WixBundleAction &lt;&gt; 4 AND AddDesktopShortcutCheckbox">#(loc.SuccessInstalledShortcutText)</Label>
+      <Label X="33" Y="178" Width="-33" Height="40" FontId="0" DisablePrefix="yes" VisibleCondition="NOT WixStdBARestartRequired AND WixBundleAction &lt;&gt; 3 AND WixBundleAction &lt;&gt; 4 AND NOT AddDesktopShortcutCheckbox">#(loc.SuccessInstalledText)</Label>
+      <ImageControl X="33" Y="226" Width="556" Height="52" ImageFile="Assets/success-block.png" VisibleCondition="NOT WixStdBARestartRequired AND WixBundleAction &lt;&gt; 3 AND WixBundleAction &lt;&gt; 4" />
+      <Label X="89" Y="242" Width="490" Height="20" FontId="7" DisablePrefix="yes" VisibleCondition="NOT WixStdBARestartRequired AND WixBundleAction &lt;&gt; 3 AND WixBundleAction &lt;&gt; 4">#(loc.SuccessReadyText)</Label>
       <Label X="33" Y="399" Width="210" Height="20" FontId="5" DisablePrefix="yes" VisibleCondition="WixStdBAShowVersion">#(loc.InstallVersion)</Label>
       <Button Name="SuccessCloseButton" X="-242" Y="-30" Width="120" Height="40" TabStop="yes" FontId="3" HoverFontId="3" SelectedFontId="3">
         <Text>#(loc.SuccessCloseButton)</Text>
@@ -212,9 +213,9 @@
     <Page Name="Failure">
       <Label X="33" Y="118" Width="-33" Height="44" FontId="1" DisablePrefix="yes">
         <Text>#(loc.FailureHeader)</Text>
-        <Text Condition="WixBundleAction = 3">#(loc.FailureUninstallHeader)</Text>
-        <Text Condition="WixBundleAction = 5">#(loc.FailureInstallHeader)</Text>
-        <Text Condition="WixBundleAction = 7">#(loc.FailureRepairHeader)</Text>
+        <Text Condition="WixBundleAction = 3 OR WixBundleAction = 4">#(loc.FailureUninstallHeader)</Text>
+        <Text Condition="WixBundleAction = 6">#(loc.FailureInstallHeader)</Text>
+        <Text Condition="WixBundleAction = 8">#(loc.FailureRepairHeader)</Text>
       </Label>
       <Hypertext Name="FailureLogFileLink" X="33" Y="178" Width="-33" Height="44" FontId="0" TabStop="yes" HideWhenDisabled="yes">#(loc.FailureHyperlinkLogText)</Hypertext>
       <Hypertext Name="FailureMessageText" X="33" Y="226" Width="-33" Height="80" FontId="0" TabStop="yes" HideWhenDisabled="yes" />

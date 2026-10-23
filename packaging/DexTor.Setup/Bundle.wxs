@@ -16,7 +16,7 @@
     <BootstrapperApplication>
       <bal:WixStandardBootstrapperApplication
           Theme="hyperlinkLargeLicense"
-          LicenseUrl=""
+          LicenseUrl="https://github.com/dextoros/dextor-launcher/blob/main/EULA.md"
           LogoFile="$(sys.SOURCEFILEDIR)..\..\docs\favicon.png"
           ThemeFile="$(sys.SOURCEFILEDIR)DexTorTheme.xml"
           LocalizationFile="$(sys.SOURCEFILEDIR)Localization\thm.en-us.wxl"

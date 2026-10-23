@@ -37,6 +37,8 @@ with you; reporting does not require waiting indefinitely for a fix.
 Test only on systems and USB drives you own or have permission to test. Avoid disruption,
 denial of service, and access to other people's data. If you encounter personal data,
 stop testing and report the minimum details needed to explain the issue privately.
+Section 3 of the [EULA](EULA.md) allows testing, analysis and reverse engineering of the
+official release binaries for this research.
 
 This policy does not grant rights over third-party systems or components. Third-party
 licenses remain applicable.

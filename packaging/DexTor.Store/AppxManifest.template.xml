@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  MSIX manifest of the DexTor OS launcher for Microsoft Store (Partner Center app
+  "DexTor OS", Store ID 9N23N99XWH3V). scripts\build-store-package.ps1 fills the
+  $(...) tokens and writes the result as AppxManifest.xml into the package layout.
+
+  Identity: $(IdentityName), $(Publisher) and $(PublisherDisplayName) must be copied
+  character for character from Partner Center > the app > Product management > Product
+  identity ("Package/Identity/Name", "Package/Identity/Publisher",
+  "Package/Properties/PublisherDisplayName"). The build refuses a Store upload while any
+  of them is missing or still a placeholder.
+
+  Capabilities:
+  - runFullTrust: the launcher is a classic Win32 (WinForms) app; it runs at medium
+    integrity with full access to the desktop, like the portable exe.
+  - USB writing restarts the same DexTor.Launcher.exe through the UAC prompt
+    (ShellExecute "runas" of its path inside the package, UsbProvisionerClient). That is
+    an ordinary consent-prompt elevation of a file, not an elevated activation of the
+    package, and does not need the restricted allowElevation capability; the elevated
+    process may run without package identity and therefore receives every path it uses
+    on its command line (see DexTorStorage.ResolveRoot). Should a clean-PC test show
+    Windows refusing that restart, build with -AllowElevation: it adds
+    rescap:allowElevation here, which Microsoft approves only on request
+    (reportapp@microsoft.com) and only under strict criteria.
+  - No unvirtualizedResources / FileSystemWriteVirtualization: the launcher keeps its data
+    in the package's own LocalCache folder by name, which every process can reach and
+    which Windows deletes with the app.
+-->
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap rescap">
+
+  <Identity
+    Name="$(IdentityName)"
+    Publisher="$(Publisher)"
+    Version="$(Version)"
+    ProcessorArchitecture="x64" />
+
+  <Properties>
+    <DisplayName>DexTor OS</DisplayName>
+    <PublisherDisplayName>$(PublisherDisplayName)</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+    <Description>Creates a DexTor OS USB drive and starts DexTor OS in a window on this PC.</Description>
+  </Properties>
+
+  <Dependencies>
+    <!-- Windows 11 only: the launcher relies on Windows Hypervisor Platform as shipped in
+         Windows 11 (build 22000 and later). -->
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.22000.0" MaxVersionTested="$(MaxVersionTested)" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="en-us" />
+  </Resources>
+
+  <Applications>
+    <Application Id="DexTorOS" Executable="DexTor.Launcher.exe" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements
+        DisplayName="DexTor OS"
+        Description="Creates a DexTor OS USB drive and starts DexTor OS in a window on this PC."
+        BackgroundColor="transparent"
+        Square150x150Logo="Assets\Square150x150Logo.png"
+        Square44x44Logo="Assets\Square44x44Logo.png">
+        <uap:DefaultTile
+          ShortName="DexTor OS"
+          Wide310x150Logo="Assets\Wide310x150Logo.png"
+          Square71x71Logo="Assets\SmallTile.png"
+          Square310x310Logo="Assets\LargeTile.png">
+          <uap:ShowNameOnTiles>
+            <uap:ShowOn Tile="square150x150Logo" />
+            <uap:ShowOn Tile="wide310x150Logo" />
+            <uap:ShowOn Tile="square310x310Logo" />
+          </uap:ShowNameOnTiles>
+        </uap:DefaultTile>
+      </uap:VisualElements>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <rescap:Capability Name="runFullTrust" />
+$(ExtraCapabilities)
+  </Capabilities>
+</Package>

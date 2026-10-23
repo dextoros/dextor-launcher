@@ -105,7 +105,7 @@ internal static class LauncherBranding
 
     private static string ReadVersion()
     {
-        var assembly = System.Reflection.Assembly.GetEntryAssembly() ?? typeof(LauncherBranding).Assembly;
+        var assembly = typeof(LauncherBranding).Assembly;
         var informational = assembly
             .GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false)
             .OfType<System.Reflection.AssemblyInformationalVersionAttribute>()

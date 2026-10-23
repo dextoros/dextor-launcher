@@ -26,8 +26,11 @@ image cache, the QEMU runtime and the USB creation log live only in the user's t
   versions and stale USB write requests. Once the release index has been read, images of
   previous versions are removed too. The verified current image and runtime stay, so they are
   not downloaded again.
-- The QEMU runtime is taken from the official QEMU for Windows installer, run without
-  administrator rights (`RunAsInvoker`) only to unpack it into `%LOCALAPPDATA%\DexTor\Runtime`.
+- The QEMU runtime is taken from Stefan Weil's QEMU for Windows installer, downloaded from
+  DexTor's unmodified mirror (https://github.com/dextoros/qemu-runtime) or, if that cannot be
+  reached, from qemu.weilnetz.de, and accepted only with the SHA-512 pinned in
+  `runtime/qemu-manifest.json`. The installer is run without administrator rights
+  (`RunAsInvoker`) only to unpack it into `%LOCALAPPDATA%\DexTor\Runtime`.
   The shortcuts and registry entries that installer adds for that folder are removed right
   away and again on every start.
 
@@ -92,13 +95,15 @@ alone accepts `-SkipMsiValidation`. In `SignedRelease` the validation cannot be 
 production certificate, and signs the payload, the MSI, the inner Burn engine and the final
 setup.
 
-To prepare the pinned, minimal QEMU payload from the official Windows installer:
+To prepare the pinned, minimal QEMU payload from Stefan Weil's Windows installer:
 
 ```powershell
 .\scripts\prepare-qemu-payload.ps1
 ```
 
-The script checks the installer's SHA-512 before unpacking, keeps only
+The script downloads the installer from `sourceUrl` (DexTor's mirror) and then, if needed, from
+each of `fallbackSourceUrls` (qemu.weilnetz.de), checks the pinned SHA-512 after every download
+and records the URL that produced the verified file as `binarySourceUrl`. It then keeps only
 `qemu-system-x86_64.exe`, its runtime dependencies and the x86 firmware and data, then writes a
 complete `qemu-runtime-files.json` with SHA-256 and Authenticode status for every file.
 Documentation, icons and firmware for other architectures are excluded by the declarative

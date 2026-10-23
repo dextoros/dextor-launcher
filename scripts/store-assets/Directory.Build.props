@@ -1,0 +1,4 @@
+<Project>
+  <!-- A stand-alone tool: none of the product's build rules (analyzers as errors,
+       central package versions) apply to it. -->
+</Project>

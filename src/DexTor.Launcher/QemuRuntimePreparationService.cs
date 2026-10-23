@@ -2,36 +2,44 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text.Json;
+using DexTor.Contracts;
 
 namespace DexTor.Launcher;
 
 internal sealed record QemuRuntimeInspectionResult(bool IsReady, string RuntimePath, string? ErrorMessage = null);
 
-internal sealed class QemuRuntimePreparationService
+internal sealed partial class QemuRuntimePreparationService
 {
-    internal const string Version = "11.1.0";
+    internal static string Version => QemuRuntimeDistribution.Default.Version;
     internal const string StageDownload = "launcher.create.runtime.prepare.status.downloading";
     internal const string StageVerify = "launcher.create.runtime.prepare.status.verifying";
     internal const string StageInstall = "launcher.create.runtime.prepare.status.installing";
-    internal const string InstallerUrl = "https://qemu.weilnetz.de/w64/2026/qemu-w64-setup-20260811.exe";
-    internal const string InstallerSha512 = "5bcf9eed634e8575a37b74f445af41a2fe4106da512d0c30c368301d4c105037fdfab40a5287367a28a957624cddebbc8c07e16c88ab6634f554cdf3d16bf543";
+    internal static string InstallerUrl => QemuRuntimeDistribution.Default.InstallerUrls[0];
+    internal static string InstallerSha512 => QemuRuntimeDistribution.Default.InstallerSha512;
+    private static readonly TimeSpan DownloadIdleTimeout = TimeSpan.FromSeconds(30);
 
     private readonly HttpClient _httpClient;
     private readonly Func<string, string, CancellationToken, Task<int>> _install;
-    private readonly string _installerUrl;
+    private readonly IReadOnlyList<string> _installerUrls;
     private readonly string _installerSha512;
     private readonly string _bundledRuntimePath;
+    private readonly Func<string, Stream> _openDownloadFile;
 
     internal QemuRuntimePreparationService(
         HttpClient? httpClient = null,
         Func<string, string, CancellationToken, Task<int>>? install = null,
         string? installerUrl = null,
         string? installerSha512 = null,
-        string? bundledRuntimePath = null)
+        string? bundledRuntimePath = null,
+        IReadOnlyList<string>? fallbackInstallerUrls = null,
+        Func<string, Stream>? openDownloadFile = null)
     {
-        _httpClient = httpClient ?? new HttpClient();
+        _httpClient = httpClient ?? CreateHttpClient();
+        _openDownloadFile = openDownloadFile ?? OpenDownloadFile;
         _install = install ?? InstallSilentlyAsync;
-        _installerUrl = installerUrl ?? InstallerUrl;
+        _installerUrls = installerUrl is null
+            ? QemuRuntimeDistribution.Default.InstallerUrls
+            : new[] { installerUrl }.Concat(fallbackInstallerUrls ?? []).Distinct(StringComparer.Ordinal).ToArray();
         _installerSha512 = installerSha512 ?? InstallerSha512;
         _bundledRuntimePath = bundledRuntimePath ?? Path.Combine(AppContext.BaseDirectory, "runtime", "qemu");
     }
@@ -63,18 +71,25 @@ internal sealed class QemuRuntimePreparationService
             return inspection;
         }
 
+        if (MustNotDownload(inspection, out var packagedFailure))
+        {
+            return packagedFailure;
+        }
+
         Directory.CreateDirectory(cacheRoot);
         var installerPath = Path.Combine(cacheRoot, $"qemu-w64-{Version}.exe");
         progress?.Report(new LiveImagePreparationProgress(0, null, null, null, StageDownload));
-        if (!await DownloadAsync(installerPath, progress, cancellationToken))
+        if (await DownloadAsync(installerPath, progress, cancellationToken) is { } downloadError)
         {
-            return inspection with { ErrorMessage = "Could not download the QEMU runtime." };
+            return inspection with { ErrorMessage = downloadError };
         }
 
         progress?.Report(new LiveImagePreparationProgress(0, null, null, null, StageVerify));
         var actualHash = await ComputeSha512Async(installerPath, cancellationToken);
         if (!string.Equals(actualHash, _installerSha512, StringComparison.OrdinalIgnoreCase))
         {
+            // Every URL serves the same pinned file, so a wrong one is not retried elsewhere:
+            // it is deleted, nothing is installed, and the preparation fails.
             TryDelete(installerPath);
             return inspection with { ErrorMessage = "The QEMU runtime checksum does not match." };
         }
@@ -125,7 +140,18 @@ internal sealed class QemuRuntimePreparationService
         }
     }
 
-    private async Task<bool> DownloadAsync(
+    /// <summary>
+    /// Puts the installer at <paramref name="destinationPath"/>, trying the URLs in order.
+    /// </summary>
+    /// <returns><see langword="null"/> once a complete file is there, otherwise why not.</returns>
+    /// <remarks>
+    /// Only the source being unreachable moves on to the next URL: DNS, connect, TLS, a
+    /// non-2xx answer, a timeout, or a stream that broke or ended early. A file this PC
+    /// cannot write would fail the same way from every mirror, and the user's cancellation
+    /// stops at once. A completed download is never weighed against another URL - it goes
+    /// to the hash check, and a mismatch there ends the preparation.
+    /// </remarks>
+    private async Task<string?> DownloadAsync(
         string destinationPath,
         IProgress<LiveImagePreparationProgress>? progress,
         CancellationToken cancellationToken)
@@ -133,30 +159,70 @@ internal sealed class QemuRuntimePreparationService
         if (File.Exists(destinationPath)
             && string.Equals(await ComputeSha512Async(destinationPath, cancellationToken), _installerSha512, StringComparison.OrdinalIgnoreCase))
         {
-            return true;
+            return null;
         }
 
         var temporaryPath = destinationPath + ".tmp";
-        TryDelete(temporaryPath);
+        foreach (var url in _installerUrls)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            try
+            {
+                if (await DownloadFromUrlAsync(url, temporaryPath, progress, cancellationToken))
+                {
+                    await WriteLocallyAsync(() =>
+                    {
+                        TryDelete(destinationPath);
+                        File.Move(temporaryPath, destinationPath);
+                        return Task.CompletedTask;
+                    });
+                    return null;
+                }
+            }
+            catch (LocalWriteException exception)
+            {
+                return $"Could not save the QEMU runtime download: {exception.Message}";
+            }
+            catch (HttpRequestException) { }
+            catch (TimeoutException) { }
+            // A header or idle timeout of this URL; the user's own cancellation is not caught.
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested) { }
+            finally { TryDelete(temporaryPath); }
+        }
+        return "Could not download the QEMU runtime from any of its sources.";
+    }
+
+    /// <returns><see langword="false"/> when this URL answered without the file.</returns>
+    private async Task<bool> DownloadFromUrlAsync(
+        string url, string temporaryPath,
+        IProgress<LiveImagePreparationProgress>? progress, CancellationToken cancellationToken)
+    {
+        using var headersTimeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        headersTimeout.CancelAfter(DownloadIdleTimeout);
+        using var response = await _httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, headersTimeout.Token);
+        headersTimeout.CancelAfter(Timeout.InfiniteTimeSpan);
+        if (!response.IsSuccessStatusCode) return false;
+        // GitHub answers a release download with a redirect to its object storage. The
+        // handler follows it and never downgrades to http; this only makes that explicit.
+        if (response.RequestMessage?.RequestUri is { } finalUri && finalUri.Scheme != Uri.UriSchemeHttps) return false;
+
+        var total = response.Content.Headers.ContentLength;
+        Stream source;
+        try { source = await response.Content.ReadAsStreamAsync(cancellationToken); }
+        catch (IOException exception) { throw new HttpRequestException("The QEMU download stream failed.", exception); }
+        await using var sourceScope = source;
+        Stream? destination = null;
         try
         {
-            using var response = await _httpClient.GetAsync(_installerUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-            if (!response.IsSuccessStatusCode)
-            {
-                return false;
-            }
-
-            var total = response.Content.Headers.ContentLength;
-            await using var source = await response.Content.ReadAsStreamAsync(cancellationToken);
-            await using var destination = File.Create(temporaryPath);
+            await WriteLocallyAsync(() => { destination = _openDownloadFile(temporaryPath); return Task.CompletedTask; });
             var buffer = new byte[64 * 1024];
             var started = DateTime.UtcNow;
             long downloaded = 0;
             var lastReport = DateTime.MinValue;
             int read;
-            while ((read = await source.ReadAsync(buffer, cancellationToken)) > 0)
+            while ((read = await ReadNetworkAsync(source, buffer, cancellationToken)) > 0)
             {
-                await destination.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
+                await WriteLocallyAsync(() => destination!.WriteAsync(buffer.AsMemory(0, read), cancellationToken).AsTask());
                 downloaded += read;
                 // One report per 64 KB flooded the UI thread with thousands of posts; ten
                 // a second is as smooth on screen and leaves the pump free to paint.
@@ -173,17 +239,68 @@ internal sealed class QemuRuntimePreparationService
                     : null;
                 progress?.Report(new LiveImagePreparationProgress(downloaded, total, speed, eta, StageDownload));
             }
-            await destination.FlushAsync(cancellationToken);
-            destination.Close();
-            TryDelete(destinationPath);
-            File.Move(temporaryPath, destinationPath);
+            if (total is { } expected && downloaded != expected)
+            {
+                throw new HttpRequestException($"The QEMU download ended after {downloaded} of {expected} bytes.");
+            }
+            var written = destination!;
+            destination = null;
+            await WriteLocallyAsync(async () =>
+            {
+                await using (written)
+                {
+                    await written.FlushAsync(cancellationToken);
+                }
+            });
             return true;
         }
         finally
         {
-            TryDelete(temporaryPath);
+            if (destination is not null)
+            {
+                try { await destination.DisposeAsync(); }
+                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+                {
+                    // Already failing; the error that got here is the one reported.
+                }
+            }
         }
     }
+
+    private static async Task<int> ReadNetworkAsync(Stream source, byte[] buffer, CancellationToken cancellationToken)
+    {
+        using var idleTimeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        idleTimeout.CancelAfter(DownloadIdleTimeout);
+        try { return await source.ReadAsync(buffer, idleTimeout.Token); }
+        catch (IOException exception) { throw new HttpRequestException("The QEMU download stream failed.", exception); }
+    }
+
+    /// <summary>Marks a failure of this PC's own disk, which no other URL can fix.</summary>
+    private static async Task WriteLocallyAsync(Func<Task> write)
+    {
+        try { await write(); }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            throw new LocalWriteException(exception);
+        }
+    }
+
+    // Unbuffered: a full disk fails the write that hit it, not a flush hidden in dispose.
+    private static FileStream OpenDownloadFile(string path) =>
+        new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: 0, useAsync: true);
+
+    /// <summary>
+    /// GitHub serves a release asset through a redirect to its object storage, so redirects
+    /// are followed - a few, and .NET never follows one from https to http.
+    /// </summary>
+    private static HttpClient CreateHttpClient() => new(new SocketsHttpHandler
+    {
+        AllowAutoRedirect = true,
+        MaxAutomaticRedirections = 5,
+        ConnectTimeout = DownloadIdleTimeout
+    });
+
+    private sealed class LocalWriteException(Exception inner) : Exception(inner.Message, inner);
 
     private const int ErrorElevationRequired = 740;
 

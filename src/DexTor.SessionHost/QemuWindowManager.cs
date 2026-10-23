@@ -135,7 +135,10 @@ internal static partial class QemuWindowManager
             }
 
             await ShowBehindCurtainAsync(process, window, watcher, guestScreen, options, cancellationToken).ConfigureAwait(false);
-            _ = GuardBootAsync(process, window, watcher, guestScreen, options);
+            var shown = new ShownWindow(window, watcher) { Guarding = true };
+            s_shown.AddOrUpdate(process, shown);
+            if (watcher is not null) _ = DisposeWhenGoneAsync(watcher, process);
+            _ = GuardBootAsync(process, shown, guestScreen, options);
             return true;
         }
         catch (Exception exception) when (exception is InvalidOperationException or System.ComponentModel.Win32Exception or OperationCanceledException)
@@ -201,18 +204,20 @@ internal static partial class QemuWindowManager
     /// </summary>
     private static async Task GuardBootAsync(
         IQemuProcess process,
-        IntPtr window,
-        QemuWindowWatcher? watcher,
+        ShownWindow shown,
         Func<CancellationToken, Task<GuestScreen>> guestScreen,
         VmWindowOptions options)
     {
-        var covered = false;
+        var watcher = shown.Watcher;
         if (watcher is not null && options.Curtain is { } curtain && options.Display is { } display)
         {
             watcher.PlaceholderShown = () =>
             {
-                covered = true;
-                curtain.Cover(display);
+                lock (shown)
+                {
+                    shown.Covered = true;
+                    curtain.Cover(display);
+                }
             };
         }
 
@@ -222,47 +227,138 @@ internal static partial class QemuWindowManager
             // between may wait for the operator's password as long as it takes; without them, the
             // boot phase. Dark frames between the splash, the storage screen and the desktop
             // (Cage starting, mutter taking the display, GNOME Shell's #282828) are covered.
-            var started = DateTime.UtcNow;
+            // A restart of the guest starts the count again (CoverGuestRestart).
             bool Booting() => options.Signals?.Invoke() is { } guest
-                ? !guest.DesktopReady && DateTime.UtcNow - started < DesktopWaitLimit
-                : DateTime.UtcNow - started < BootPhase;
-            while (!process.HasExited && Booting())
+                ? !guest.DesktopReady && DateTime.UtcNow - shown.Started < DesktopWaitLimit
+                : DateTime.UtcNow - shown.Started < BootPhase;
+            while (true)
             {
+                lock (shown)
+                {
+                    // Decided under the lock a restart takes too: a restart either sees this
+                    // guard still running or starts a new one, never neither.
+                    if (process.HasExited || !Booting())
+                    {
+                        shown.Guarding = false;
+                        shown.Covered = false;
+                        shown.AwaitingFrame = false;
+                        if (watcher is not null) watcher.PlaceholderShown = null;
+                        options.Curtain?.Uncover();
+                        // The window stays fitted for the whole session; only maximizing stops here.
+                        watcher?.Current = QemuWindowWatcher.Mode.Off;
+                        break;
+                    }
+                }
+
                 var screen = await guestScreen(CancellationToken.None).ConfigureAwait(false);
+                var framed = options.Signals?.Invoke() is { FrameReady: true };
                 if (options.Curtain is { } shade && options.Display is { } area)
                 {
-                    if (screen is GuestScreen.Placeholder or GuestScreen.Blank && !covered)
+                    lock (shown)
                     {
-                        covered = true;
-                        shade.Cover(area);
-                    }
-                    else if (screen == GuestScreen.Picture && covered)
-                    {
-                        covered = false;
-                        _ = SetForegroundWindow(window);
-                        shade.Uncover();
+                        if (screen is GuestScreen.Placeholder or GuestScreen.Blank && !shown.Covered)
+                        {
+                            shown.Covered = true;
+                            shade.Cover(area);
+                        }
+                        else if (shown.Covered && (screen == GuestScreen.Picture || (shown.AwaitingFrame && framed)))
+                        {
+                            // After a restart the guest's "frame" lifts the curtain, as it opened
+                            // the window at the first start.
+                            shown.Covered = false;
+                            shown.AwaitingFrame = false;
+                            _ = SetForegroundWindow(shown.Window);
+                            shade.Uncover();
+                        }
                     }
                 }
 
                 // Close looks while the boot moves; easier ones while the storage screen waits.
-                await Task.Delay(DateTime.UtcNow - started < BootPhase ? 150 : 400).ConfigureAwait(false);
+                await Task.Delay(DateTime.UtcNow - shown.Started < BootPhase ? 150 : 400).ConfigureAwait(false);
             }
         }
         catch (Exception exception) when (exception is InvalidOperationException or IOException or TimeoutException)
         {
             // The guard is cosmetic; the session goes on.
+            lock (shown)
+            {
+                shown.Guarding = false;
+                shown.Covered = false;
+                if (watcher is not null) watcher.PlaceholderShown = null;
+                options.Curtain?.Uncover();
+                watcher?.Current = QemuWindowWatcher.Mode.Off;
+            }
         }
         finally
         {
-            if (watcher is not null) watcher.PlaceholderShown = null;
-            options.Curtain?.Uncover();
-            // The window stays fitted for the whole session; only maximizing stops here.
-            watcher?.Current = QemuWindowWatcher.Mode.Off;
-            if (watcher is not null) _ = DisposeWhenGoneAsync(watcher, process);
             // Past the boot phase nothing asks any more; the id may be reused by another process.
             lock (s_revealed) s_revealed.Remove(process.Id);
         }
     }
+
+    /// <summary>
+    /// DexTor OS restarted from inside (QMP RESET): QEMU resets the guest in place, so its
+    /// window goes through the firmware, the kernel and the splash again. The curtain covers
+    /// it from that moment until the guest draws again - its "frame" or a picture - and the
+    /// boot guard runs again until "desktop", as at the first start.
+    /// </summary>
+    /// <remarks>
+    /// Nothing happens when the window was never shown: a restart before the first reveal is
+    /// still waited out by <see cref="RevealWhenDrawingAsync"/>, which needs a new "frame".
+    /// </remarks>
+    public static void CoverGuestRestart(
+        IQemuProcess process,
+        Func<CancellationToken, Task<GuestScreen>> guestScreen,
+        VmWindowOptions? options)
+    {
+        ArgumentNullException.ThrowIfNull(process);
+        ArgumentNullException.ThrowIfNull(guestScreen);
+        options ??= VmWindowOptions.None;
+        if (process.HasExited || !s_shown.TryGetValue(process, out var shown)) return;
+
+        bool startGuard;
+        lock (shown)
+        {
+            shown.Started = DateTime.UtcNow;
+            shown.AwaitingFrame = true;
+            if (options.Curtain is { } curtain && options.Display is { } display)
+            {
+                shown.Covered = true;
+                curtain.Cover(display);
+            }
+
+            startGuard = !shown.Guarding;
+            shown.Guarding = true;
+            // A window the operator keeps maximized is kept so through the firmware's small
+            // modes; one they sized themselves is left alone.
+            if (shown.Watcher is { } watcher && IsZoomed(shown.Window)) watcher.Current = QemuWindowWatcher.Mode.Maximized;
+        }
+
+        if (startGuard) _ = GuardBootAsync(process, shown, guestScreen, options);
+    }
+
+    /// <summary>A VM window that has been revealed, and the state of the guard over its boot.</summary>
+    private sealed class ShownWindow(IntPtr window, QemuWindowWatcher? watcher)
+    {
+        public IntPtr Window { get; } = window;
+
+        public QemuWindowWatcher? Watcher { get; } = watcher;
+
+        /// <summary>When the boot being guarded began: the first start, or the last restart.</summary>
+        public DateTime Started { get; set; } = DateTime.UtcNow;
+
+        /// <summary>A guard is running over this window.</summary>
+        public bool Guarding { get; set; }
+
+        /// <summary>The curtain is over the window.</summary>
+        public bool Covered { get; set; }
+
+        /// <summary>The guest restarted and has not said "frame" since.</summary>
+        public bool AwaitingFrame { get; set; }
+    }
+
+    /// <summary>The windows shown, by the process they belong to - the process object, not a reusable id.</summary>
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<IQemuProcess, ShownWindow> s_shown = new();
 
     private static async Task DisposeWhenGoneAsync(QemuWindowWatcher watcher, IQemuProcess process)
     {
