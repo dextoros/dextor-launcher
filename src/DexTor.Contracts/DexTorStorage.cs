@@ -39,7 +39,7 @@ public static class DexTorStorage
 
     public static string Root => RootOverride ?? DefaultRoot;
 
-    /// <summary>The downloaded DexTor OS image: <c>%LOCALAPPDATA%DexTorche</c>.</summary>
+    /// <summary>The downloaded DexTor OS image: <c>%LOCALAPPDATA%\DexTor\cache</c>.</summary>
     public static string LiveImage => Path.Combine(Root, LiveImageFolder);
 
     /// <summary>The image folder's name; it was "LiveImage" before 0.1.39.</summary>

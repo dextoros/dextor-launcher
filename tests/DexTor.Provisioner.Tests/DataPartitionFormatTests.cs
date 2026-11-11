@@ -324,4 +324,26 @@ public sealed class DataPartitionFormatTests
     {
         HybridUsbProvisioner.JournalDirectory.Should().Be(DexTorStorage.Journal);
     }
+
+    [Fact]
+    public async Task TheJournalDoesNotNameTheWindowsUser()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "dextor-journal-" + Guid.NewGuid().ToString("N"));
+        var original = HybridUsbProvisioner.JournalDirectory;
+        HybridUsbProvisioner.JournalDirectory = directory;
+        try
+        {
+            var request = Request();
+            await new HybridUsbProvisioner(new Inventory(null), new DiskPart(true), new NoWriter()).ExecuteAsync(request);
+
+            var journal = File.ReadAllText(Path.Combine(directory, $"{request.RequestId:N}.log"));
+            journal.Should().Contain("provisioner ");
+            journal.Should().NotContain(Environment.UserName, "the privacy policy says no user name is collected");
+        }
+        finally
+        {
+            HybridUsbProvisioner.JournalDirectory = original;
+            if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        }
+    }
 }

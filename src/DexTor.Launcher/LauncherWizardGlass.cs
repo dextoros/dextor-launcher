@@ -157,7 +157,7 @@ internal sealed partial class LauncherWizardWindow
     {
         foreach (var button in GoButtons(host))
         {
-            if (button.GlowBounds(host) is { } bounds) PaintGoGlow(g, bounds, button.Look);
+            if (button.GlowBounds(host) is { } bounds) PaintGoGlow(g, bounds, button.GoVisual);
         }
     }
 
@@ -901,8 +901,68 @@ internal sealed partial class LauncherWizardWindow
         private Font ArrowFont => _arrowFont ??= WizardFonts.Get(14, 400);
         private Font? _arrowFont;
 
-        protected override void OnMouseEnter(EventArgs e) { _hover = true; Restyle(); base.OnMouseEnter(e); }
-        protected override void OnMouseLeave(EventArgs e) { _hover = false; _pressed = false; Restyle(); base.OnMouseLeave(e); }
+        protected override void OnMouseEnter(EventArgs e) { _hover = true; FadeGlow(1f); Restyle(); base.OnMouseEnter(e); }
+        protected override void OnMouseLeave(EventArgs e) { _hover = false; _pressed = false; FadeGlow(0f); Restyle(); base.OnMouseLeave(e); }
+
+        /// <summary>How long the go button's glow takes to come up or die down.</summary>
+        internal const int GlowFadeMilliseconds = 180;
+
+        private float _glow;
+        private float _glowFrom;
+        private float _glowTo;
+        private readonly System.Diagnostics.Stopwatch _glowClock = new();
+        private System.Windows.Forms.Timer? _glowTimer;
+
+        /// <summary>The go button's hover glow, 0 at rest to 1 under the pointer, as painted now.</summary>
+        internal float GlowLevel => _glow;
+
+        /// <summary>
+        /// Moves the glow towards <paramref name="to"/> over <see cref="GlowFadeMilliseconds"/>,
+        /// easing out, from wherever it is now: the pointer leaving half-way through a fade-in
+        /// fades out from there, without a jump. Switched at once, the glow flashed on and off
+        /// as the pointer crossed the button.
+        /// </summary>
+        private void FadeGlow(float to)
+        {
+            if (Kind != ButtonKind.Go || !IsHandleCreated)
+            {
+                _glowTimer?.Stop();
+                _glow = _glowFrom = _glowTo = to;
+                return;
+            }
+
+            _glowFrom = _glow;
+            _glowTo = to;
+            _glowClock.Restart();
+            _glowTimer ??= CreateGlowTimer();
+            _glowTimer.Start();
+        }
+
+        private System.Windows.Forms.Timer CreateGlowTimer()
+        {
+            // As often as the system timer ticks (~16 ms): about 11 steps per fade.
+            var timer = new System.Windows.Forms.Timer { Interval = 10 };
+            timer.Tick += (_, _) =>
+            {
+                var progress = Math.Min(1f, _glowClock.ElapsedMilliseconds / (float)GlowFadeMilliseconds);
+                var eased = 1f - MathF.Pow(1f - progress, 3);
+                _glow = _glowFrom + (_glowTo - _glowFrom) * eased;
+                if (progress >= 1f)
+                {
+                    _glow = _glowTo;
+                    timer.Stop();
+                }
+
+                Restyle();
+            };
+            return timer;
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing) _glowTimer?.Dispose();
+            base.Dispose(disposing);
+        }
         protected override void OnMouseDown(MouseEventArgs e) { _pressed = true; Restyle(); base.OnMouseDown(e); }
         protected override void OnMouseUp(MouseEventArgs e) { _pressed = false; Restyle(); base.OnMouseUp(e); }
 
@@ -918,7 +978,7 @@ internal sealed partial class LauncherWizardWindow
         protected override void OnSizeChanged(EventArgs e) { InvalidateGlow(); base.OnSizeChanged(e); }
         protected override void OnParentChanged(EventArgs e) { InvalidateGlow(); base.OnParentChanged(e); }
 
-        internal ButtonLook Look => Visual;
+        internal GoLook GoVisual => new(_glow, _pressed);
 
         /// <summary>The surface that paints this button's halo - see <see cref="IGlowHost"/>.</summary>
         private Control? GlowHost
@@ -1010,7 +1070,7 @@ internal sealed partial class LauncherWizardWindow
             {
                 switch (Kind)
                 {
-                    case ButtonKind.Go: PaintGoButton(g, bounds, Visual, outerGlow: GlowHost is null); break;
+                    case ButtonKind.Go: PaintGoButton(g, bounds, GoVisual, outerGlow: GlowHost is null); break;
                     case ButtonKind.Danger: PaintDangerButton(g, bounds, Visual); break;
                     case ButtonKind.DangerOutline: PaintDangerOutlineButton(g, bounds, Visual); break;
                     case ButtonKind.Outline:

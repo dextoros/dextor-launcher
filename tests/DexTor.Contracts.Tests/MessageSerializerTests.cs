@@ -96,8 +96,9 @@ public class MessageSerializerTests
     {
         var request = new SessionStartRequest(
             Guid.NewGuid(), @"C:\a.iso", @"R:\s.img", @"R:\d.img", new string('c', 64), 6144, 6,
-            GuestLocale: "ru_RU.UTF-8", BuildChannel: "test",
-            DisplayWidth: 2560, DisplayHeight: 1377, DisplayScalePercent: 150);
+            GuestLocale: "de_DE.UTF-8", BuildChannel: "test",
+            DisplayWidth: 2560, DisplayHeight: 1377, DisplayScalePercent: 150,
+            GuestTimeZone: "Europe/Berlin");
 
         var parsed = VmSessionSerializer.DeserializeStartRequest(VmSessionSerializer.SerializeStartRequest(request));
 

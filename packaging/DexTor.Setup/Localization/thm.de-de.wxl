@@ -18,8 +18,7 @@
   <String Id="HelpHeader" Value="Setup-Hilfe" />
   <String Id="HelpText" Value="/install | /repair | /uninstall | /layout [Ordner] - installiert, repariert, deinstalliert oder&#xA;   erstellt eine vollständige lokale Kopie des Pakets im Ordner. Standard ist die Installation.&#xA;&#xA;/passive | /quiet - zeigt eine minimale Oberfläche ohne Abfragen oder gar keine&#xA;   Oberfläche an. Standardmäßig werden die Oberfläche und alle Abfragen angezeigt.&#xA;&#xA;/norestart - unterdrückt Neustarts. Standardmäßig wird vor einem Neustart nachgefragt.&#xA;/log log.txt - schreibt das Protokoll in die angegebene Datei. Standardmäßig wird es in %TEMP% erstellt." />
   <String Id="HelpCloseButton" Value="&amp;Schließen" />
-  <String Id="InstallLicenseLinkText" Value="[WixBundleName] &lt;a href=&quot;#&quot;&gt;Lizenzbedingungen&lt;/a&gt;." />
-  <String Id="InstallAcceptCheckbox" Value="Ich &amp;stimme den Lizenzbedingungen zu" />
+  <String Id="InstallLicenseLinkText" Value="Mit „Installieren“ akzeptieren Sie die &lt;a href=&quot;#&quot;&gt;Lizenzbedingungen&lt;/a&gt; von [WixBundleName]." />
   <String Id="InstallOptionsButton" Value="&amp;Optionen" />
   <String Id="InstallInstallButton" Value="&amp;Installieren" />
   <String Id="InstallCancelButton" Value="&amp;Abbrechen" />

@@ -10,18 +10,20 @@ nothing in the PolyForm terms limits the rights those licenses give you.
 
 ## At a glance
 
-| Component | Version | License | Portable `.exe` | Installer (MSI / Setup) |
-|---|---|---|---|---|
-| [.NET runtime and Windows Desktop runtime](#net-runtime-and-microsoftextensions) | 10.0 | MIT | included | included |
-| [Microsoft.Extensions.Logging](#net-runtime-and-microsoftextensions) | 9.0.0 | MIT | included | included |
-| [DiscUtils](#discutils) | 0.16.13 | MIT | included | included |
-| [Inter typeface](#inter) | 4.1 | SIL OFL 1.1 | included | included |
-| [QEMU](#qemu) | 11.1.0 | GPL-2.0-or-later and others | **downloaded on first use**, not included | included in `SignedRelease` builds |
-| [WiX Toolset](#wix-toolset) | 6.0.2 | MS-RL | not used | bootstrapper engine and theme |
+| Component | Version | License | Portable `.exe` | Installer (MSI / Setup) | Microsoft Store |
+|---|---|---|---|---|---|
+| [.NET runtime and Windows Desktop runtime](#net-runtime-and-microsoftextensions) | 10.0 | MIT | included | included | included |
+| [Microsoft.Extensions.Logging](#net-runtime-and-microsoftextensions) | 9.0.0 | MIT | included | included | included |
+| [DiscUtils](#discutils) | 0.16.13 | MIT | included | included | included |
+| [Inter typeface](#inter) | 4.1 | SIL OFL 1.1 | included | included | included |
+| [QEMU](#qemu) | 11.1.0 | GPL-2.0-or-later and others | **downloaded on first use**, not included | included in `SignedRelease` builds | included |
+| [WiX Toolset](#wix-toolset) | 6.0.2 | MS-RL | not used | bootstrapper engine and theme | not used |
 
 "Included" means the component is part of the file we publish. "Downloaded on first use" means
-the launcher fetches the component's official build from its publisher when it is needed, checks
-it against a pinned hash, and runs it from the user's own cache; DexTor does not redistribute it.
+the launcher downloads the component when it is needed - from DexTor's unmodified mirror, or from
+the original publisher as a fallback - checks it against a pinned hash, and runs it from the
+user's own cache. Hosting the mirror is distribution by DexTor; the corresponding source is
+published next to it, see QEMU below.
 
 ---
 

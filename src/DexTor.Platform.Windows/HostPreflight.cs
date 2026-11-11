@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using DexTor.Application;
+using DexTor.Contracts;
 
 namespace DexTor.Platform.Windows;
 
@@ -204,7 +205,7 @@ public class HostPreflightEvaluator : IHostPreflightEvaluator
     {
         try
         {
-            using var client = new HttpClient
+            using var client = new HttpClient(new SocketsHttpHandler { AllowAutoRedirect = false })
             {
                 Timeout = TimeSpan.FromSeconds(LiveImageCheckTimeoutSeconds)
             };
@@ -226,8 +227,10 @@ public class HostPreflightEvaluator : IHostPreflightEvaluator
                     InfoTextKey: "launcher.preflight.live_image.unavailable");
             }
 
+            // The launcher does not even ask an address outside https://dextoros.com; the
+            // wizard then says why it will not download.
             if (!Uri.TryCreate(resolvedUrl, UriKind.Absolute, out var isoUri) ||
-                (isoUri.Scheme != Uri.UriSchemeHttp && isoUri.Scheme != Uri.UriSchemeHttps))
+                !ImageSourcePolicy.IsTrusted(isoUri))
             {
                 return new PreflightRequirement(
                     PreflightRequirementKind.LiveImage,

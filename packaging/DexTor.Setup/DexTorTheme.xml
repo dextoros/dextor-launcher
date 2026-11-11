@@ -54,12 +54,13 @@
     <Page Name="Install">
       <Label X="33" Y="118" Width="-33" Height="44" FontId="1" DisablePrefix="yes">#(loc.InstallHeader)</Label>
       <Label X="33" Y="178" Width="-33" Height="64" FontId="0" DisablePrefix="yes">#(loc.InstallMessage)</Label>
-      <Hypertext Name="EulaHyperlink" X="33" Y="250" Width="-33" Height="20" TabStop="yes" FontId="0" HideWhenDisabled="yes">#(loc.InstallLicenseLinkText)</Hypertext>
+      <!-- No "I accept" checkbox: the link line says that installing accepts the terms. Without
+           EulaAcceptCheckbox in the theme, the standard BA keeps the Install button enabled. -->
+      <Hypertext Name="EulaHyperlink" X="33" Y="250" Width="-33" Height="40" TabStop="yes" FontId="0" HideWhenDisabled="yes">#(loc.InstallLicenseLinkText)</Hypertext>
       <!-- The native checkbox keeps its accessible name; Windows draws checkbox captions
            black, so a separate label beside it carries the readable text. -->
       <Checkbox Name="AddDesktopShortcutCheckbox" X="33" Y="345" Width="16" Height="18" TabStop="yes" FontId="4">#(loc.DesktopShortcut)</Checkbox>
       <Label X="58" Y="344" Width="-33" Height="20" FontId="4" DisablePrefix="yes">#(loc.DesktopShortcut)</Label>
-      <Checkbox Name="EulaAcceptCheckbox" X="33" Y="372" Width="-33" Height="18" TabStop="yes" FontId="4" HideWhenDisabled="yes">#(loc.InstallAcceptCheckbox)</Checkbox>
       <Label Name="InstallVersion" X="33" Y="399" Width="210" Height="20" FontId="5" DisablePrefix="yes" VisibleCondition="WixStdBAShowVersion">#(loc.InstallVersion)</Label>
       <Button Name="InstallUpdateButton" X="33" Y="-30" Width="200" Height="40" TabStop="yes" FontId="3" EnableCondition="WixStdBAUpdateAvailable" HideWhenDisabled="yes" HoverFontId="3" SelectedFontId="3">
         <Text>#(loc.UpdateButton)</Text>

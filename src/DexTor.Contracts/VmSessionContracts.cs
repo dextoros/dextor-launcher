@@ -16,7 +16,7 @@ public sealed record SessionStartRequest(
     // would claim a different lock for the same data.img. Ownership is keyed to the
     // canonical identity of the image itself. Not a credential, never passed to the guest.
     string? DeviceRequestId = null,
-    // The wizard's language as a POSIX locale (ru_RU.UTF-8) and the build channel
+    // The wizard's language as a POSIX locale (de_DE.UTF-8) and the build channel
     // (test or release), handed to the guest through fw_cfg. Null leaves the guest
     // as it boots straight from the stick.
     string? GuestLocale = null,
@@ -27,7 +27,11 @@ public sealed record SessionStartRequest(
     // leaves QEMU's 1280x800.
     int? DisplayWidth = null,
     int? DisplayHeight = null,
-    int? DisplayScalePercent = null);
+    int? DisplayScalePercent = null,
+    // The Windows time zone as an IANA name (Europe/Berlin), handed to the guest through
+    // fw_cfg like the locale. Null when Windows' zone has no IANA name: the guest keeps
+    // its own. The VM clock itself stays in UTC.
+    string? GuestTimeZone = null);
 
 public static class VmSessionSerializer
 {

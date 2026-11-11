@@ -59,11 +59,11 @@ public sealed class QemuLaunchAndQmpTests : IDisposable
         var iso = Write("DexTor OS.iso");
         var data = Write("data.img");
         var request = new SessionStartRequest(Guid.NewGuid(), iso, iso, data, new string('a', 64), 4096, 4,
-            GuestLocale: "ru_RU.UTF-8", BuildChannel: "test");
+            GuestLocale: "de_DE.UTF-8", BuildChannel: "test");
 
         var plan = QemuLaunchPlanBuilder.Build(executable, new ResolvedSystemImage(iso, SystemImageLocation.TemporaryCache), request);
 
-        plan.Arguments.Should().ContainInOrder("-fw_cfg", "name=opt/org.dextoros/locale,string=ru_RU.UTF-8");
+        plan.Arguments.Should().ContainInOrder("-fw_cfg", "name=opt/org.dextoros/locale,string=de_DE.UTF-8");
         plan.Arguments.Should().ContainInOrder("-fw_cfg", "name=opt/org.dextoros/channel,string=test");
     }
 
@@ -74,12 +74,83 @@ public sealed class QemuLaunchAndQmpTests : IDisposable
         var iso = Write("DexTor OS.iso");
         var data = Write("data.img");
         var request = new SessionStartRequest(Guid.NewGuid(), iso, iso, data, new string('a', 64), 4096, 4,
-            GuestLocale: "ru_RU.UTF-8,file=C:/x", BuildChannel: "test");
+            GuestLocale: "de_DE.UTF-8,file=C:/x", BuildChannel: "test");
 
         var plan = QemuLaunchPlanBuilder.Build(executable, new ResolvedSystemImage(iso, SystemImageLocation.TemporaryCache), request);
 
         plan.Arguments.Should().NotContain(argument => argument.Contains("locale", StringComparison.Ordinal));
         plan.Arguments.Should().ContainInOrder("-fw_cfg", "name=opt/org.dextoros/channel,string=test");
+    }
+
+    [Theory]
+    [InlineData("Europe/Berlin")]
+    [InlineData("America/Argentina/Buenos_Aires")]
+    [InlineData("Etc/GMT+5")]
+    [InlineData("Etc/GMT-14")]
+    [InlineData("UTC")]
+    // Legacy names go through as they are: nothing is normalised.
+    [InlineData("Asia/Saigon")]
+    [InlineData("Asia/Calcutta")]
+    public void TheWindowsTimeZoneReachesTheGuestThroughFwCfgAndTheClockStaysInUtc(string timeZone)
+    {
+        var plan = BuildWithTimeZone(timeZone);
+
+        plan.Arguments.Should().ContainInOrder("-fw_cfg", $"name=opt/org.dextoros/timezone,string={timeZone}");
+        plan.Arguments.Should().NotContain("-rtc", "the VM clock stays in UTC; the guest applies the zone itself");
+        plan.Arguments.Should().NotContain(argument => argument.Contains("base=localtime", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ATimeZoneOfExactly64BytesIsPassed()
+    {
+        var timeZone = "Etc/" + new string('a', 60);
+
+        var plan = BuildWithTimeZone(timeZone);
+
+        plan.Arguments.Should().ContainInOrder("-fw_cfg", $"name=opt/org.dextoros/timezone,string={timeZone}");
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("Asia/東京")]
+    [InlineData("Europe/Zürich")]
+    [InlineData("Europe/Berlin\n")]
+    [InlineData("Europe/Berlin\r\nEurope/Paris")]
+    [InlineData("Europe\r/Berlin")]
+    [InlineData("Europe/Berlin,file=C:/x")]
+    [InlineData("Europe/Ber lin")]
+    [InlineData(" Europe/Berlin")]
+    [InlineData("Europe/Berlin ")]
+    [InlineData("Europe/\tBerlin")]
+    [InlineData(" ")]
+    [InlineData("Europe/Berlin\0")]
+    public void ATimeZoneThatIsNotAPlainAsciiNameIsLeftOutEntirely(string? timeZone)
+    {
+        var plan = BuildWithTimeZone(timeZone);
+
+        plan.Arguments.Should().NotContain(argument => argument.Contains("timezone", StringComparison.Ordinal));
+        // The other guest settings are not affected by a zone that is left out.
+        plan.Arguments.Should().ContainInOrder("-fw_cfg", "name=opt/org.dextoros/locale,string=de_DE.UTF-8");
+        plan.Arguments.Should().ContainInOrder("-fw_cfg", "name=opt/org.dextoros/channel,string=test");
+    }
+
+    [Fact]
+    public void ATimeZoneLongerThan64BytesIsLeftOutNotTruncated()
+    {
+        var plan = BuildWithTimeZone("Etc/" + new string('a', 61));
+
+        plan.Arguments.Should().NotContain(argument => argument.Contains("timezone", StringComparison.Ordinal));
+    }
+
+    private QemuLaunchPlan BuildWithTimeZone(string? timeZone)
+    {
+        var executable = Write("qemu-system-x86_64.exe");
+        var iso = Write("DexTor OS.iso");
+        var data = Write("data.img");
+        var request = new SessionStartRequest(Guid.NewGuid(), iso, iso, data, new string('a', 64), 4096, 4,
+            GuestLocale: "de_DE.UTF-8", BuildChannel: "test", GuestTimeZone: timeZone);
+        return QemuLaunchPlanBuilder.Build(executable, new ResolvedSystemImage(iso, SystemImageLocation.TemporaryCache), request);
     }
 
     [Fact]

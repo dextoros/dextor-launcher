@@ -60,6 +60,7 @@ internal static class LauncherBranding
             Anchor = AnchorStyles.Right
         };
         site.LinkClicked += (_, _) => OpenSite();
+        ShowVersionOnHover(copyright);
 
         footer.Controls.Add(copyright, 0, 0);
         footer.Controls.Add(language, 2, 0);
@@ -117,7 +118,23 @@ internal static class LauncherBranding
         return metadata >= 0 ? version[..metadata] : version;
     }
 
-    internal static string FooterText(ILocalizer localizer) => $"{localizer.T("launcher.brand.footer")}  ·  v{DisplayVersion}";
+    internal static string FooterText(ILocalizer localizer) => localizer.T("launcher.brand.footer");
+
+    /// <summary>"DexTor OS for Windows v0.1.41": the product name, not localized, with the build.</summary>
+    internal static string VersionHint => $"DexTor OS for Windows v{DisplayVersion}";
+
+    /// <summary>
+    /// Shows the running version when the pointer rests on <paramref name="target"/>. The version
+    /// left the footer to keep the screen quiet; it is still one hover away for support, and in
+    /// the accessible description for screen readers.
+    /// </summary>
+    internal static void ShowVersionOnHover(Control target)
+    {
+        var hint = new ToolTip { InitialDelay = 400, ShowAlways = true };
+        hint.SetToolTip(target, VersionHint);
+        target.AccessibleDescription = VersionHint;
+        target.Disposed += (_, _) => hint.Dispose();
+    }
 
     internal sealed class ThemedLanguageSelector : Button
     {

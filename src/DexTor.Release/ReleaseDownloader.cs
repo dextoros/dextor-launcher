@@ -27,7 +27,8 @@ public sealed class ReleaseDownloader : IReleaseDownloader
 
     public ReleaseDownloader(HttpClient? httpClient = null)
     {
-        _httpClient = httpClient ?? new HttpClient();
+        // No redirect is followed: one could lead away from dextoros.com.
+        _httpClient = httpClient ?? new HttpClient(new SocketsHttpHandler { AllowAutoRedirect = false });
     }
 
     public async Task<ReleaseDownloadResult> DownloadAsync(

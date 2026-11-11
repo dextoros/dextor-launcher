@@ -62,7 +62,7 @@ public sealed partial class WizardScreenshots
     private static async Task CaptureAsync(string folder)
     {
         Directory.CreateDirectory(folder);
-        var language = Environment.GetEnvironmentVariable("DEXTOR_SCREENSHOTS_LANGUAGE") ?? "ru";
+        var language = Environment.GetEnvironmentVariable("DEXTOR_SCREENSHOTS_LANGUAGE") ?? "en";
         var only = Environment.GetEnvironmentVariable("DEXTOR_SCREENSHOTS_ONLY");
         bool Wanted(string name) => string.IsNullOrWhiteSpace(only) || name.Contains(only, StringComparison.OrdinalIgnoreCase);
 
@@ -82,6 +82,38 @@ public sealed partial class WizardScreenshots
         }
 
         await Run("220042", _ => { }, async (w, shot) => await shot("220042"));
+        // The go button under the pointer, for a close look at its glow.
+        await Run("go-hover", _ => { }, async (w, shot) =>
+        {
+            Hover(w.Controls.Find("WizardPrimaryButton", true).Single(), true);
+            await shot("go-hover");
+        });
+        // The fade frame by frame: in, and out again from half-way.
+        await Run("go-fade", _ => { }, async (w, shot) =>
+        {
+            await Pump(700);
+            var button = w.Controls.Find("WizardPrimaryButton", true).Single();
+            var root = w.Controls.Find("WizardRoot", true).Single();
+            var area = Rectangle.Inflate(root.RectangleToClient(button.RectangleToScreen(button.ClientRectangle)), 40, 30);
+            var frame = 0;
+            async Task Frames(int milliseconds)
+            {
+                var clock = System.Diagnostics.Stopwatch.StartNew();
+                while (clock.ElapsedMilliseconds < milliseconds)
+                {
+                    await Pump(16);
+                    using var full = new Bitmap(root.Width, root.Height);
+                    root.DrawToBitmap(full, new Rectangle(Point.Empty, root.Size));
+                    using var part = full.Clone(area, full.PixelFormat);
+                    part.Save(Path.Combine(folder, $"go-fade-{frame++:00}-{clock.ElapsedMilliseconds:000}ms.png"), ImageFormat.Png);
+                }
+            }
+
+            Hover(button, true);
+            await Frames(90);
+            Hover(button, false);
+            await Frames(260);
+        });
         await Run("220057", d => d.Environment = new TaskCompletionSource<LauncherWizardEnvironment>(), async (w, shot) =>
         {
             var advance = w.AdvanceAsync();
@@ -167,7 +199,7 @@ public sealed partial class WizardScreenshots
             using var dialog = new LauncherWizardWindow.ConfirmationDialog(new Localizer(language),
                 new Localizer(language).T("launcher.wizard.usb.confirm_erase", new Dictionary<string, string>
                 {
-                    ["drive"] = @"F:\", ["disk"] = "3", ["model"] = "Kingston DataTraveler 3.0", ["capacity"] = "57,8 ГБ"
+                    ["drive"] = @"F:\", ["disk"] = "3", ["model"] = "Kingston DataTraveler 3.0", ["capacity"] = "57.8 GB"
                 }),
                 new Localizer(language).T("launcher.wizard.usb.erase_action"), new Localizer(language).T("launcher.wizard.dialog.cancel"), destructive: true);
             await DialogShotAsync(w, dialog, Path.Combine(folder, "220553.png"));
@@ -364,6 +396,14 @@ public sealed partial class WizardScreenshots
     }
 
     /// <summary>The client area, without the window frame - as the mock-ups were cropped.</summary>
+    /// <summary>What the pointer entering or leaving <paramref name="control"/> does, without a pointer.</summary>
+    internal static void Hover(Control control, bool inside)
+    {
+        var method = typeof(Control).GetMethod(inside ? "OnMouseEnter" : "OnMouseLeave",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+        method.Invoke(control, [EventArgs.Empty]);
+    }
+
     private static async Task ShotAsync(LauncherWizardWindow window, string path)
     {
         // Long enough for the page cross-fade and the stepper's tick to finish.

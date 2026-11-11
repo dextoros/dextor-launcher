@@ -1,13 +1,13 @@
 # Builds the DexTor OS launcher as an MSIX package for Microsoft Store.
 #
 # Store upload (unsigned - the Store signs it after certification):
-#   .\scripts\build-store-package.ps1 -Version 0.1.40
+#   .\scripts\build-store-package.ps1 -Version 0.1.0
 # The identity defaults below are copied from Partner Center > DexTor OS > Product management >
 # Product identity; the build refuses to make an upload with an empty or placeholder value.
 #
 # Local test package, signed with the self-signed test certificate
 # (scripts\new-test-signing-certificate.ps1; created on first use):
-#   .\scripts\build-store-package.ps1 -Version 0.1.40 -TestSigned
+#   .\scripts\build-store-package.ps1 -Version 0.1.0 -TestSigned
 # Its Identity Publisher is the test certificate's subject, as signing demands, so it is
 # not the package that goes to the Store. Installing it needs the certificate in
 # Local Machine > Trusted People (an administrator decision, not done here).
@@ -165,7 +165,14 @@ New-Item -ItemType Directory -Path $qemuDestination -Force | Out-Null
 Copy-Item -Path (Join-Path $QemuRuntimePath '*') -Destination $qemuDestination -Recurse -Force
 Copy-Item -LiteralPath (Join-Path $repoRoot 'packaging\THIRD-PARTY-NOTICES.md') -Destination $layout
 # The terms the Store build is used under; Partner Center's "additional license terms" link here too.
-Copy-Item -LiteralPath (Join-Path $repoRoot 'publish\overlay\EULA.md') -Destination $layout
+# EULA.md is at the root of the published source; the development tree keeps it one level down,
+# with the other files that are published as they are.
+$eula = @('EULA.md', 'publish\overlay\EULA.md') |
+    ForEach-Object { Join-Path $repoRoot $_ } |
+    Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } |
+    Select-Object -First 1
+if (-not $eula) { throw 'EULA.md was not found; the Store package must carry it.' }
+Copy-Item -LiteralPath $eula -Destination $layout
 
 $assetsSource = Join-Path $storeRoot 'Assets'
 if (-not (Get-ChildItem -LiteralPath $assetsSource -Filter 'Square44x44Logo.targetsize-*.png' -ErrorAction SilentlyContinue)) {

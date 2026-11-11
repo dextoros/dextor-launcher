@@ -18,8 +18,7 @@
   <String Id="HelpHeader" Value="Довідка зі встановлення" />
   <String Id="HelpText" Value="/install | /repair | /uninstall | /layout [тека] — встановлення, відновлення, видалення&#xA;   або повна локальна копія пакета в теці. Типово — встановлення.&#xA;&#xA;/passive | /quiet — мінімальний інтерфейс без запитань або без інтерфейсу&#xA;   взагалі. Типово показуються інтерфейс і всі запитання.&#xA;&#xA;/norestart — не перезавантажувати комп’ютер. Типово перед перезавантаженням ставиться запитання.&#xA;/log log.txt — журнал у вказаний файл. Типово журнал створюється в %TEMP%." />
   <String Id="HelpCloseButton" Value="&amp;Закрити" />
-  <String Id="InstallLicenseLinkText" Value="[WixBundleName] &lt;a href=&quot;#&quot;&gt;умови ліцензії&lt;/a&gt;." />
-  <String Id="InstallAcceptCheckbox" Value="Я &amp;приймаю умови ліцензії" />
+  <String Id="InstallLicenseLinkText" Value="Натискаючи «Встановити», ви приймаєте &lt;a href=&quot;#&quot;&gt;умови ліцензії&lt;/a&gt; [WixBundleName]." />
   <String Id="InstallOptionsButton" Value="&amp;Параметри" />
   <String Id="InstallInstallButton" Value="&amp;Встановити" />
   <String Id="InstallCancelButton" Value="&amp;Скасувати" />

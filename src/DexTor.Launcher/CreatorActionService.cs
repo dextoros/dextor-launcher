@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
+using DexTor.Contracts;
 using DexTor.Creator;
 using DexTor.Release;
 
@@ -883,8 +884,8 @@ public static class CreatorActionService
                 return true;
             }
 
-            if (uri.Scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
-                || uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+            // A release from the web comes from https://dextoros.com only, like the wizard's image.
+            if (ImageSourcePolicy.IsTrusted(uri))
             {
                 return true;
             }

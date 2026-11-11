@@ -312,7 +312,7 @@ public sealed class CreatorActionServiceTests
 
             try
             {
-                var sourceUri = "https://example.com/releases/dextor/system.img";
+                var sourceUri = "https://dextoros.com/releases/dextor/system.img";
 
                 Environment.SetEnvironmentVariable(CreatorActionService.ReleaseSourceEnvVar, sourceUri);
                 Environment.SetEnvironmentVariable(CreatorActionService.ReleaseSha256EnvVar, new string('A', 64));
@@ -604,11 +604,11 @@ public sealed class CreatorActionServiceTests
                 Directory.CreateDirectory(tempRoot);
                 File.WriteAllText(manifestPath, "{}");
 
-                Environment.SetEnvironmentVariable(CreatorActionService.ReleaseSourceEnvVar, "https://example.com/release/system.img");
+                Environment.SetEnvironmentVariable(CreatorActionService.ReleaseSourceEnvVar, "https://dextoros.com/release/system.img");
                 Environment.SetEnvironmentVariable(CreatorActionService.ReleaseManifestEnvVar, manifestPath);
                 Environment.SetEnvironmentVariable(CreatorActionService.ReleaseSha256EnvVar, new string('A', 64));
 
-                CreatorActionService.GetReleaseConfigRecoveryPath().Should().Be("https://example.com/release/system.img");
+                CreatorActionService.GetReleaseConfigRecoveryPath().Should().Be("https://dextoros.com/release/system.img");
             }
             finally
             {
@@ -635,12 +635,12 @@ public sealed class CreatorActionServiceTests
 
             try
             {
-                Environment.SetEnvironmentVariable(CreatorActionService.ReleaseSourceEnvVar, "https://example.com/release/system.img");
+                Environment.SetEnvironmentVariable(CreatorActionService.ReleaseSourceEnvVar, "https://dextoros.com/release/system.img");
                 Environment.SetEnvironmentVariable(CreatorActionService.ReleaseManifestEnvVar, null);
                 Environment.SetEnvironmentVariable(CreatorActionService.ReleaseSha256EnvVar, new string('A', 64));
                 Environment.SetEnvironmentVariable(CreatorActionService.ReleaseCacheEnvVar, null);
 
-                CreatorActionService.GetReleaseConfigRecoveryPath().Should().Be("https://example.com/release/system.img");
+                CreatorActionService.GetReleaseConfigRecoveryPath().Should().Be("https://dextoros.com/release/system.img");
             }
             finally
             {
@@ -657,6 +657,8 @@ public sealed class CreatorActionServiceTests
     [InlineData("dextor://bad-protocol.example/system.img")]
     [InlineData("file:///@/not_a_path")]
     [InlineData("C:\\\\not-a-real-file.img")]
+    [InlineData("https://example.com/release/system.img")]
+    [InlineData("http://dextoros.com/release/system.img")]
     public void TryGetReleaseConfigFromEnvironmentReturnsErrorWhenInvalidSource(string invalidSource)
     {
         lock (ReleaseEnvLock)

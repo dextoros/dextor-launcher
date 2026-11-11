@@ -20,9 +20,9 @@ public sealed class WizardCjkFontTests
                 font.Bold.Should().BeTrue();
             }
 
-            WizardFonts.UseLanguage("ru").Should().BeTrue();
-            using var russian = WizardFonts.Get(14, 600);
-            russian.FontFamily.Name.Should().NotBe(WizardFonts.CjkFamilyName);
+            WizardFonts.UseLanguage("de").Should().BeTrue();
+            using var latin = WizardFonts.Get(14, 600);
+            latin.FontFamily.Name.Should().NotBe(WizardFonts.CjkFamilyName);
         }
         finally
         {

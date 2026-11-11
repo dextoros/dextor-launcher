@@ -214,8 +214,9 @@ public sealed class HybridUsbProvisioner(
     {
         var diskChanged = false;
         _journalRequest = request;
-        // The first line says which build wrote the journal.
-        AppendJournalLine(request, $"provisioner {ProvisionerVersion} on {Environment.OSVersion.VersionString}, user {Environment.UserName}");
+        // The first line says which build wrote the journal. No user name: the privacy
+        // policy says none is collected, and a failure is diagnosed without it.
+        AppendJournalLine(request, $"provisioner {ProvisionerVersion} on {Environment.OSVersion.VersionString}");
         try
         {
             Enter(UsbProvisioningStage.Validating);

@@ -12,7 +12,7 @@
 [![Release](https://img.shields.io/github/v/release/dextoros/dextor-launcher?include_prereleases&color=8b5cf6)](https://github.com/dextoros/dextor-launcher/releases)
 [![License](https://img.shields.io/badge/license-source--available-8b5cf6)](LICENSE)
 
-[Website](https://dextoros.com) · [Download](https://github.com/dextoros/dextor-launcher/releases) · [Report a bug](https://github.com/dextoros/dextor-launcher/issues/new?template=bug_report.yml) · [Suggest a feature](https://github.com/dextoros/dextor-launcher/issues/new?template=feature_request.yml)
+[Website](https://dextoros.com) · [Microsoft Store](https://apps.microsoft.com/detail/9N23N99XWH3V) · [Download](https://github.com/dextoros/dextor-launcher/releases) · [Report a bug](https://github.com/dextoros/dextor-launcher/issues/new?template=bug_report.yml) · [Suggest a feature](https://github.com/dextoros/dextor-launcher/issues/new?template=feature_request.yml)
 
 <img src=".github/assets/screenshots/welcome.png" alt="The DexTor OS setup wizard" width="760">
 
@@ -66,9 +66,9 @@ exactly what it does on a computer and to a USB drive - and what it does not.
 </tr>
 </table>
 
-Screenshots show the English v0.1.39 interface. Download sizes, timings and hardware
-values are examples; direct boot depends on compatible hardware. Guest and Secure modes
-are provided by DexTor OS itself, not by the launcher.
+Screenshots show the English interface. The DexTor OS image version, download sizes, timings
+and hardware values in them are examples; direct boot depends on compatible hardware. Guest and
+Secure modes are provided by DexTor OS itself, not by the launcher.
 
 ## Architecture
 
@@ -93,7 +93,7 @@ administrator approval.
 | `DexTor.Provisioner` | The elevated USB-writing implementation |
 | `DexTor.Qemu` | QEMU launch plan, QMP client, storage identity |
 | `DexTor.SessionHost` | Runs and supervises the VM session, coordinates storage ownership |
-| `DexTor.Updater` | Signed update flow |
+| `DexTor.Updater` | Signed update flow; not used by the current builds |
 | `DexTor.Support` | Support codes and diagnostic reports |
 | `DexTor.Launcher` | The desktop wizard |
 
@@ -117,8 +117,21 @@ downloads and selected temporary files; it does not erase all application data a
 The .NET single-file runtime may also extract files into its own temporary cache.
 
 To remove the launcher and its local cache, finish USB creation, close DexTor OS and the launcher,
-then delete the portable executable and `%LOCALAPPDATA%\DexTor`. This does not erase the USB
-drive or remove records Windows itself may retain, such as execution history or security logs.
+then delete the portable executable and `%LOCALAPPDATA%\DexTor`. The Store version keeps the same
+files in its package folder, `%LOCALAPPDATA%\Packages\<package family>\LocalCache\Local\DexTor`;
+uninstall it from Windows Settings. This does not erase the USB drive or remove records Windows
+itself may retain, such as execution history or security logs.
+
+## Get it
+
+- **Microsoft Store** -
+  [DexTor OS in the Microsoft Store](https://apps.microsoft.com/detail/9N23N99XWH3V). The Store
+  package carries QEMU inside it, so it never downloads QEMU, and new versions of the launcher
+  arrive through the Store. A new version reaches the Store after Microsoft's review, so the
+  Store may offer a different version than the latest release here.
+- **Portable executable** - one file from
+  [GitHub Releases](https://github.com/dextoros/dextor-launcher/releases); nothing is installed.
+  It downloads QEMU on first use and does not update itself: get the next release the same way.
 
 ## Verify a download
 
@@ -130,8 +143,9 @@ Get-FileHash -Algorithm SHA256 -LiteralPath '.\DexTorOS-Portable-VERSION-win-x64
 ```
 
 Replace `VERSION` with the downloaded version. A matching hash checks file integrity;
-it does not establish a trusted publisher. The v0.1.39 executable is unsigned. If the
-hash differs, do not run the file; report the mismatch.
+it does not establish a trusted publisher. The portable executable is currently unsigned; the
+Store package is signed by the Microsoft Store. If the hash differs, do not run the file;
+report the mismatch.
 
 ## Building from source
 
@@ -162,8 +176,8 @@ We do not accept pull requests; see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 DexTor OS for Windows is **source-available**, not open source. Under the PolyForm Strict License
 you may read, study and audit the code, but you may not distribute it, change it or build on it.
-The EULA covers the portable executable, the installer and the Microsoft Store package that we
-publish, including use inside companies and other organizations.
+The EULA covers the release builds that we publish - the portable executable, the installer and
+the Microsoft Store package - including use inside companies and other organizations.
 
 Third-party components keep their own licenses - see
 [THIRD-PARTY-NOTICES.md](packaging/THIRD-PARTY-NOTICES.md).

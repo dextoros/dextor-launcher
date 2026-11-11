@@ -58,7 +58,7 @@ public sealed class HostQuietnessTests
     public void ALockedLanguageSelectorDimsInTheWizardsColoursInsteadOfFlashingGrey()
     {
         using var selector = new LauncherBranding.ThemedLanguageSelector(
-            [new LauncherBranding.LanguageOption("en", "English"), new LauncherBranding.LanguageOption("ru", "Русский")], "ru");
+            [new LauncherBranding.LanguageOption("en", "English"), new LauncherBranding.LanguageOption("de", "Deutsch")], "de");
         selector.CreateControl();
         using var enabled = Render(selector);
         selector.Enabled = false;

@@ -77,8 +77,13 @@ internal static class TemporaryCacheCleaner
             }
         }
 
-        var journals = SafeFiles(Path.Combine(provisioning, "journal"), "*.json")
-            .Select(path => (Path: path, Written: File.GetLastWriteTimeUtc(path)))
+        // One creation leaves <id>.json (its last state) and <id>.log (every step); the two
+        // are one journal, counted once and removed together.
+        var journalDirectory = Path.Combine(provisioning, "journal");
+        var journals = SafeFiles(journalDirectory, "*.json")
+            .Concat(SafeFiles(journalDirectory, "*.log"))
+            .GroupBy(path => Path.GetFileNameWithoutExtension(path), StringComparer.OrdinalIgnoreCase)
+            .Select(journal => (Files: journal.ToArray(), Written: journal.Max(File.GetLastWriteTimeUtc)))
             .OrderByDescending(journal => journal.Written)
             .ToArray();
         for (var index = 0; index < journals.Length; index++)
@@ -87,7 +92,7 @@ internal static class TemporaryCacheCleaner
             // stay even when old; only what is both old and beyond the kept count goes.
             if (index >= JournalsKept && nowUtc - journals[index].Written > JournalAge)
             {
-                tally.DeleteFile(journals[index].Path);
+                foreach (var file in journals[index].Files) tally.DeleteFile(file);
             }
         }
 

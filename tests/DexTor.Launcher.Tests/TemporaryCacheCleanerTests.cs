@@ -94,6 +94,30 @@ public sealed class TemporaryCacheCleanerTests : IDisposable
     }
 
     [Fact]
+    public void AJournalsLogGoesWithItsStateAndCountsAsTheSameJournal()
+    {
+        var journals = Enumerable.Range(0, TemporaryCacheCleaner.JournalsKept + 5)
+            .Select(index =>
+            {
+                var name = @"Provisioning\journal\" + index.ToString("D2", System.Globalization.CultureInfo.InvariantCulture);
+                var written = Now - TimeSpan.FromDays(40 + index);
+                return (Json: Write(name + ".json", writtenUtc: written), Log: Write(name + ".log", writtenUtc: written));
+            })
+            .ToArray();
+        var recentLogOnly = Write(@"Provisioning\journal\recent.log", writtenUtc: Now - TimeSpan.FromDays(1));
+        var oldLogOnly = Write(@"Provisioning\journal\old.log", writtenUtc: Now - TimeSpan.FromDays(400));
+
+        TemporaryCacheCleaner.Clean(_root, Now);
+
+        // The recent lone log takes one of the kept places, so one fewer old pair stays.
+        var kept = TemporaryCacheCleaner.JournalsKept - 1;
+        journals.Take(kept).Should().OnlyContain(journal => File.Exists(journal.Json) && File.Exists(journal.Log));
+        journals.Skip(kept).Should().OnlyContain(journal => !File.Exists(journal.Json) && !File.Exists(journal.Log));
+        File.Exists(recentLogOnly).Should().BeTrue();
+        File.Exists(oldLogOnly).Should().BeFalse("a log without its state is limited the same way");
+    }
+
+    [Fact]
     public void AFileStillOpenIsSkippedNotForced()
     {
         var partial = Write(@"LiveImage\.write-test-busy.tmp");

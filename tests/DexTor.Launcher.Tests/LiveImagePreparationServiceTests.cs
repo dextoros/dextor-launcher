@@ -76,7 +76,7 @@ public sealed class LiveImagePreparationServiceTests
         LiveImagePreparationService.ParseSha256FromText("5e956918c41b84b19f1375670cada718  DextorOS_1_1_45.iso").Should().BeNull();
     }
 
-    private const string ImageUrl = "https://example.test/latest.iso";
+    private const string ImageUrl = "https://dextoros.com/public/latest.iso";
     private const string ImageTag = "\"image-v1\"";
 
     /// <summary>A server for one signed image that honours Range and If-Range like Cloudflare does.</summary>
@@ -272,7 +272,7 @@ public sealed class LiveImagePreparationServiceTests
 
             result.Success.Should().BeTrue();
             result.IsReady.Should().BeFalse();
-            result.SourceUrl.Should().Be("https://example.test/latest.iso");
+            result.SourceUrl.Should().Be("https://dextoros.com/public/latest.iso");
         }
         finally
         {
@@ -426,7 +426,7 @@ public sealed class LiveImagePreparationServiceTests
                 : path.EndsWith(".sig", StringComparison.OrdinalIgnoreCase)
                     ? new ByteArrayContent(signature)
                     : path.EndsWith("lastversion.link", StringComparison.OrdinalIgnoreCase) || image is null
-                        ? new StringContent("https://example.test/latest.iso")
+                        ? new StringContent("https://dextoros.com/public/latest.iso")
                         : new ByteArrayContent(image);
             return new HttpResponseMessage(HttpStatusCode.OK) { Content = content };
         }));
@@ -446,6 +446,70 @@ public sealed class LiveImagePreparationServiceTests
             return Task.FromResult(handler(request));
         }
     }
+
+    /// <summary>A release index naming <paramref name="imageUrl"/>; every request is recorded, and only the index answers.</summary>
+    private static HttpClient IndexNaming(string imageUrl, List<Uri> requested) => new(new StubHttpHandler(request =>
+    {
+        requested.Add(request.RequestUri!);
+        return request.RequestUri!.AbsolutePath.EndsWith("lastversion.link", StringComparison.OrdinalIgnoreCase)
+            ? new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(imageUrl + "\n") }
+            : new HttpResponseMessage(HttpStatusCode.NotFound);
+    }));
+
+    [Theory]
+    [InlineData("https://mirror.example.com/DextorOS_1_1_49.iso")]
+    [InlineData("http://dextoros.com/public/1.1.49/DextorOS_1_1_49.iso")]
+    [InlineData("https://dextoros.com.example.com/DextorOS_1_1_49.iso")]
+    [InlineData("https://github.com/dextoros/dextor-os/releases/download/v1.1.49/DextorOS_1_1_49.iso")]
+    public async Task NothingIsDownloadedFromAnAddressOutsideDextoros(string imageUrl)
+    {
+        var cacheRoot = CreateTempDirectory();
+        try
+        {
+            var requested = new List<Uri>();
+            using var client = IndexNaming(imageUrl, requested);
+            var service = new LiveImagePreparationService(client, TestKey);
+
+            var inspection = await service.InspectCacheFromIndexAsync(cacheRoot);
+            var preparation = await service.PrepareFromIndexAsync(cacheRoot);
+
+            inspection.Success.Should().BeFalse();
+            inspection.ErrorMessageKey.Should().Be(LiveImagePreparationService.UntrustedSourceKey);
+            inspection.SourceUrl.Should().Be(imageUrl);
+            preparation.Success.Should().BeFalse();
+            preparation.ErrorMessageKey.Should().Be(LiveImagePreparationService.UntrustedSourceKey);
+            preparation.ErrorMessage.Should().Contain(imageUrl);
+            requested.Should().OnlyContain(uri => uri.AbsoluteUri == LiveImagePreparationService.LiveImageSourceIndexUrl,
+                "neither the image nor its .sha256 or .sig is asked for");
+            Directory.EnumerateFiles(cacheRoot).Should().BeEmpty();
+        }
+        finally
+        {
+            Directory.Delete(cacheRoot, true);
+        }
+    }
+
+    [Fact]
+    public async Task AnImageOnDextorosGoesOnToItsSignature()
+    {
+        var cacheRoot = CreateTempDirectory();
+        try
+        {
+            var requested = new List<Uri>();
+            using var client = IndexNaming("https://dextoros.com/public/1.1.49/DextorOS_1_1_49.iso", requested);
+            var service = new LiveImagePreparationService(client, TestKey);
+
+            var result = await service.InspectCacheFromIndexAsync(cacheRoot);
+
+            result.ErrorMessageKey.Should().NotBe(LiveImagePreparationService.UntrustedSourceKey);
+            requested.Should().Contain(new Uri("https://dextoros.com/public/1.1.49/DextorOS_1_1_49.iso.sha256"));
+        }
+        finally
+        {
+            Directory.Delete(cacheRoot, true);
+        }
+    }
+
 }
 
 public sealed class ImageSigningKeyTests

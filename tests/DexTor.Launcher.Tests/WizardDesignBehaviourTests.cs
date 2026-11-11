@@ -26,6 +26,7 @@ public sealed class WizardDesignBehaviourTests
     [InlineData(LiveImagePreparationService.DownloadFailedKey, "launcher.wizard.image.failed_download_title", "launcher.wizard.image.retry", true)]
     [InlineData(LiveImagePreparationService.ChecksumFailedKey, "launcher.wizard.image.failed_checksum_title", "launcher.wizard.image.download_again", true)]
     [InlineData(LiveImagePreparationService.NoSpaceKey, "launcher.wizard.image.failed_space_title", "launcher.wizard.image.retry", false)]
+    [InlineData(LiveImagePreparationService.UntrustedSourceKey, "launcher.wizard.image.failed_source_title", "launcher.wizard.image.retry", true)]
     public async Task EachDownloadFailureHasItsOwnBlockAndNextStep(string key, string title, string action, bool details)
     {
         var args = key == LiveImagePreparationService.NoSpaceKey

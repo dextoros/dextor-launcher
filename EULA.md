@@ -1,10 +1,10 @@
 # DexTor OS for Windows - End User License Agreement
 
-**Version 1.0.** Effective on the date of the release it ships with.
+**Version 1.4.** Effective on the date of the release it ships with.
 
-This End User License Agreement (the "**Agreement**") is between you and the DexTor OS authors,
-the copyright holders of DexTor OS for Windows, named "DexTor OS" in [`LICENSE`](LICENSE)
-("**we**", "**us**").
+This End User License Agreement (the "**Agreement**") is between you and the copyright
+holders of DexTor OS for Windows identified in the accompanying [`LICENSE`](LICENSE) file
+(collectively, "**we**" or "**us**").
 
 It applies to the official release builds of **DexTor OS for Windows** (the "**Launcher**"):
 the portable executable, the installer, the Microsoft Store package when it is available, and
@@ -24,18 +24,18 @@ use the official, unmodified Launcher on any number of devices that you own or c
 If you are an organization (for example a company, fund, exchange or trading desk), this
 includes:
 
-- use by your employees and contractors, for your purposes;
+- use by your employees and contractors, solely for your organization's purposes;
 - copies for internal deployment, for example through your software distribution tools or an
   internal network share that only your organization can reach;
 - backup and archive copies.
 
 ## 2. What you may not do
 
-You may not, and may not help others to:
+Except as third-party licenses or mandatory law allow, you may not, and may not help others to:
 
-- redistribute the Launcher publicly or to third parties, sell, rent, lend or sublicense it, or
-  host it or offer it as a service for others - point them to the official download pages
-  instead;
+- redistribute the Launcher publicly or to third parties (other than the internal deployment
+  that section 1 allows), sell, rent, lend or sublicense it, or host it or offer it as a service
+  for others - point them to the official download pages instead;
 - modify the Launcher, except as section 3 allows, or distribute works based on it;
 - remove or change copyright, license or attribution notices;
 - decompile, disassemble or reverse-engineer the Launcher, except as section 3 allows or to the
@@ -44,18 +44,21 @@ You may not, and may not help others to:
 
 The source code of the Launcher is published separately under the **PolyForm Strict License
 1.0.0** ([`LICENSE`](LICENSE)). That license governs the source code; this Agreement governs the
-use of the official release builds. If they conflict on the use of a release build, this
-Agreement applies.
+use of the official release builds. This Agreement grants additional permissions for the
+official release builds. It does not restrict any rights granted under the source code license
+or under third-party licenses.
 
 ## 3. Security research and verification
 
 You may test, analyze, debug, modify copies of, decompile, disassemble and reverse-engineer the
 Launcher on devices and USB drives that you own or are authorized to test, for good-faith security
-research. Report what you find as described in [`SECURITY.md`](SECURITY.md) and follow its
-disclosure terms. We will not treat research done this way as a breach of this Agreement.
+research. We will not treat research done this way as a breach of this Agreement. We encourage
+you to report what you find as described in [`SECURITY.md`](SECURITY.md) and to follow its
+responsible disclosure guidelines.
 
-You may also check that a release build matches the published source code, including by building
-it yourself from that source.
+You may also verify that an official release build corresponds to the published source code,
+including by building the source code yourself for that verification. Use of builds you make
+yourself is governed by the applicable source code and third-party licenses.
 
 This section covers only our rights in the Launcher. It does not allow testing of systems you do
 not own or are not authorized to test, such as our websites and download servers, and it does
@@ -79,10 +82,15 @@ to provide it.
   lost and back up anything you need first. This is **not a secure erase** of the whole drive;
   some old data may remain recoverable with special tools.
 - It needs **administrator rights** to write the USB drive and, if you choose to turn it on, to
-  enable the Windows Hypervisor Platform. Windows asks for your approval each time. The rest of the
-  Launcher, including the virtual machine, runs with your normal user rights.
+  enable the Windows Hypervisor Platform. Windows may prompt you for administrator approval when
+  these rights are required. The rest of the Launcher, including the virtual machine, runs with
+  your normal user rights.
 - When you start DexTor OS inside Windows, the Launcher runs it in a virtual machine (QEMU with
-  the Windows Hypervisor Platform) and gives it the DexTor OS USB drive.
+  the Windows Hypervisor Platform) and gives it the DexTor OS USB drive. Running DexTor OS in a
+  window does not isolate it from threats on the Windows host, such as malware with
+  administrator rights or a compromised hypervisor. To reduce exposure to threats from a running
+  Windows host, boot DexTor OS directly from the USB drive. Neither mode guarantees complete
+  security or isolation.
 - It keeps the downloaded image, the QEMU runtime, settings, journals and diagnostic logs in
   `%LOCALAPPDATA%\DexTor`, as described in the [README](README.md).
 
@@ -120,8 +128,11 @@ your only copy of any data or as your only way to access any assets.
 ## 9. Updates and new versions of this Agreement
 
 We may release updates. Some may be needed to keep using the Launcher, for example to keep image
-verification working. Each release is covered by the version of this Agreement it ships with;
-a new version applies to the releases it ships with, not to earlier ones.
+verification working. The Launcher downloads the latest DexTor OS image when you prepare a drive.
+New versions of the Launcher itself are published on the official download pages and, for the
+Store version, delivered through the Microsoft Store. Each release is covered by the version of
+this Agreement it ships with; a new version applies to the releases it ships with, not to earlier
+ones.
 
 ## 10. No warranty
 
@@ -141,25 +152,32 @@ Nothing in this Agreement limits liability that cannot be limited by law.
 
 ## 12. Termination
 
-This Agreement applies until it ends. It ends automatically if you breach it. You may end it at
-any time by uninstalling or deleting the Launcher and deleting `%LOCALAPPDATA%\DexTor`. When it
-ends, you must stop using the Launcher. Sections 2, 4, 7, 10, 11, 13, 14 and 15 survive.
+This Agreement applies until it ends. It ends automatically if you materially breach it, subject
+to any rights you have under mandatory law. You may end it at any time by ceasing to use the
+Launcher and uninstalling or deleting it. You may also delete its local data in
+`%LOCALAPPDATA%\DexTor`. When it ends, you must stop using the Launcher. Ending this Agreement
+does not affect rights granted under third-party licenses. Sections 2, 4, 7, 10, 11, 13, 14 and 15
+survive.
 
 ## 13. Consumer rights
 
 If you use the Launcher as a consumer, you keep any rights that the law of the country where you
 live gives you and that cannot be waived by agreement.
 
-## 14. Governing law
+## 14. Disputes
 
-**[Placeholder - governing law and venue are to be set with legal counsel.]**
+Nothing in this Agreement limits any rights or remedies you have under applicable law, including
+mandatory consumer protection law. Any dispute arising from or related to this Agreement or the
+Launcher is resolved by the courts that have jurisdiction under applicable law. Before going to
+court, please contact us so we can try to resolve the issue informally.
 
 ## 15. General
 
 If any provision is held unenforceable, the rest remains in effect. Our failure to enforce a
 provision is not a waiver. You may not transfer this Agreement. We may assign it, together with
-our rights in the Launcher, to another person or company. This English version prevails over any
-translation.
+our rights in the Launcher, to another person or company. If you obtain the Launcher through the
+Microsoft Store, the applicable Microsoft Store terms may also apply. To the extent permitted by
+law, this English version prevails over any translation.
 
 ## 16. Contact
 

@@ -269,26 +269,37 @@ internal static partial class WizardDesign
     internal enum ButtonLook { Normal, Hover, Pressed }
 
     /// <summary>
+    /// How lit the go button is: <see cref="Hover"/> runs from 0 (at rest) to 1 (under the
+    /// pointer) while the glow fades, so every frame between the two is a state of its own.
+    /// </summary>
+    internal readonly record struct GoLook(float Hover, bool Pressed)
+    {
+        public static readonly GoLook Rest = new(0, false);
+    }
+
+    /// <summary>
     /// The primary ("go") button: a dark face, a 2 px border running from deep to light green,
     /// an outer and an inner green glow that grow on hover and shrink when pressed. On hover
     /// the face also takes a green tint and the whole border lights up, so the button
     /// plainly answers the pointer.
     /// </summary>
     /// <param name="outerGlow">False when the surface under the button paints the halo.</param>
-    public static void PaintGoButton(Graphics g, RectangleF bounds, ButtonLook state, bool outerGlow = true)
+    public static void PaintGoButton(Graphics g, RectangleF bounds, GoLook look, bool outerGlow = true)
     {
-        if (outerGlow) PaintGoGlow(g, bounds, state);
+        if (outerGlow) PaintGoGlow(g, bounds, look);
+        var hover = look.Pressed ? 0f : Math.Clamp(look.Hover, 0f, 1f);
         using (var path = Rounded(bounds, Sf(8)))
-        using (var face = new SolidBrush(state == ButtonLook.Hover ? Blend(GoFace, Green, 0.08f) : GoFace))
+        using (var face = new SolidBrush(Blend(GoFace, Green, 0.08f * hover)))
         {
             g.FillPath(face, path);
         }
 
-        var (_, _, inner, innerAlpha) = GoGlow(state);
-        PaintInnerGlow(g, bounds, 8, Green, inner, innerAlpha);
+        var (_, _, inner, innerAlpha) = GoGlow(look);
+        PaintRoundedGlow(g, bounds, Green, inner, innerAlpha, inside: true);
         var width = Math.Max(1.5f, Sf(1.6f));
         var edge = RectangleF.Inflate(bounds, -width / 2, -width / 2);
-        var (from, to) = state == ButtonLook.Hover ? (Green, Color.FromArgb(0xA8, 0xF7, 0xD4)) : (GreenDeep, GreenLight);
+        var from = Blend(GreenDeep, Green, hover);
+        var to = Blend(GreenLight, Color.FromArgb(0xA8, 0xF7, 0xD4), hover);
         using var border = new LinearGradientBrush(bounds, from, to, LinearGradientMode.Horizontal);
         using var pen = new Pen(border, width);
         using var outline = Rounded(edge, Sf(8) - width / 2);
@@ -298,23 +309,170 @@ internal static partial class WizardDesign
     /// <summary>How far, in design pixels, the go button's glow reaches at its widest (hover).</summary>
     public const float GoGlowReach = 22f;
 
-    /// <summary>The go button's outer and inner glow: blur in design pixels and strength.</summary>
-    private static (float Outer, float OuterAlpha, float Inner, float InnerAlpha) GoGlow(ButtonLook state) => state switch
+    /// <summary>
+    /// The go button's outer and inner glow: blur in design pixels and strength, between rest
+    /// and hover in 48 steps - enough for a smooth fade, few enough to cache.
+    /// </summary>
+    private static (float Outer, float OuterAlpha, float Inner, float InnerAlpha) GoGlow(GoLook look)
     {
-        ButtonLook.Hover => (GoGlowReach, 0.95f, 16f, 0.34f),
-        ButtonLook.Pressed => (8f, 0.25f, 8f, 0.12f),
-        _ => (14f, 0.35f, 10f, 0.15f)
-    };
+        if (look.Pressed) return (8f, 0.25f, 8f, 0.12f);
+        var t = MathF.Round(Math.Clamp(look.Hover, 0f, 1f) * 48f) / 48f;
+        static float Lerp(float from, float to, float t) => from + (to - from) * t;
+        return (Lerp(14f, GoGlowReach, t), Lerp(0.35f, 0.95f, t), Lerp(10f, 16f, t), Lerp(0.15f, 0.34f, t));
+    }
 
     /// <summary>
-    /// The go button's outer glow on its own. The button paints it inside its bounds and the
-    /// parent around them, so the halo is continuous instead of cut off square at the edges
-    /// of the control - which showed as grey corners beside the button.
+    /// The go button's outer glow on its own. The surface under the button paints it, around
+    /// the button and under it, so the halo is continuous instead of cut off square at the
+    /// edges of the control - which showed as grey corners beside the button.
     /// </summary>
-    public static void PaintGoGlow(Graphics g, RectangleF bounds, ButtonLook state)
+    public static void PaintGoGlow(Graphics g, RectangleF bounds, GoLook look)
     {
-        var (outer, outerAlpha, _, _) = GoGlow(state);
-        PaintOuterGlow(g, bounds, 8, Green, outer, outerAlpha * 0.55f);
+        var (outer, outerAlpha, _, _) = GoGlow(look);
+        PaintRoundedGlow(g, bounds, Green, outer, outerAlpha * 0.55f, inside: false);
+    }
+
+    /// <summary>
+    /// A glow along a rounded rectangle (radius 8), outside it or - <paramref name="inside"/> -
+    /// along the inside of its edge. Each pixel takes its strength from its exact distance to
+    /// the rounded outline, so the glow is one shape: the same on all four sides, round at the
+    /// corners, with no seams where stacked rings or strips used to meet. The same rectangle
+    /// always gives the same pixels, whichever control paints it, so the halo the surface
+    /// paints and the part a neighbour repaints match exactly.
+    /// </summary>
+    private static void PaintRoundedGlow(Graphics g, RectangleF bounds, Color color, float blur, float alpha, bool inside)
+    {
+        if (blur <= 0 || alpha <= 0) return;
+        var box = Rectangle.Round(bounds);
+        if (box.Width <= 0 || box.Height <= 0) return;
+        var key = new GlowKey(box.Width, box.Height, Sf(8), Sf(blur), alpha, inside, color.ToArgb());
+        var image = GlowImage(key);
+        var spread = (image.Width - box.Width) / 2;
+        var state = g.Save();
+        g.InterpolationMode = InterpolationMode.NearestNeighbor;
+        g.PixelOffsetMode = PixelOffsetMode.Half;
+        g.CompositingMode = CompositingMode.SourceOver;
+        g.DrawImage(image, new Rectangle(box.X - spread, box.Y - spread, image.Width, image.Height),
+            0, 0, image.Width, image.Height, GraphicsUnit.Pixel);
+        g.Restore(state);
+    }
+
+    /// <summary>The go button's glow for a button of that size at <paramref name="scale"/>, as painted at that scale.</summary>
+    internal static Bitmap RenderGoGlow(int width, int height, float scale, GoLook look, bool inside)
+    {
+        var (outer, outerAlpha, inner, innerAlpha) = GoGlow(look);
+        return inside
+            ? RenderGlow(new GlowKey(width, height, 8 * scale, inner * scale, innerAlpha, true, Green.ToArgb()))
+            : RenderGlow(new GlowKey(width, height, 8 * scale, outer * scale, outerAlpha * 0.55f, false, Green.ToArgb()));
+    }
+
+    private readonly record struct GlowKey(int Width, int Height, float Radius, float Blur, float Alpha, bool Inside, int Color);
+
+    // Per UI thread: a GDI+ bitmap cannot be drawn from two threads at once.
+    [ThreadStatic] private static Dictionary<GlowKey, Bitmap>? _glowCache;
+    [ThreadStatic] private static LinkedList<GlowKey>? _glowCacheOrder;
+    private const int GlowCacheSize = 64;
+
+    /// <summary>The glow for <paramref name="key"/>, from the cache: during a fade, the surface and every control over the halo ask for the same one.</summary>
+    private static Bitmap GlowImage(GlowKey key)
+    {
+        var cache = _glowCache ??= [];
+        var order = _glowCacheOrder ??= [];
+        if (cache.TryGetValue(key, out var cached))
+        {
+            order.Remove(key);
+            order.AddFirst(key);
+            return cached;
+        }
+
+        var image = RenderGlow(key);
+        cache[key] = image;
+        order.AddFirst(key);
+        while (order.Count > GlowCacheSize)
+        {
+            var oldest = order.Last!.Value;
+            order.RemoveLast();
+            cache.Remove(oldest, out var evicted);
+            evicted?.Dispose();
+        }
+
+        return image;
+    }
+
+    /// <summary>
+    /// Renders the glow from the distance to the rounded rectangle, falling off the way the
+    /// stacked rings it replaces added up: cubic outside, quadratic inside.
+    /// </summary>
+    private static Bitmap RenderGlow(GlowKey key)
+    {
+        var spread = key.Inside ? 0 : (int)Math.Ceiling(key.Blur);
+        var width = key.Width + spread * 2;
+        var height = key.Height + spread * 2;
+        var halfWidth = key.Width / 2f;
+        var halfHeight = key.Height / 2f;
+        var radius = Math.Min(key.Radius, Math.Min(halfWidth, halfHeight));
+        var centreX = spread + halfWidth;
+        var centreY = spread + halfHeight;
+        var colour = System.Drawing.Color.FromArgb(key.Color);
+        var pixels = new int[width * height];
+        for (var y = 0; y < height; y++)
+        {
+            var qy = Math.Abs(y + 0.5f - centreY) - (halfHeight - radius);
+            for (var x = 0; x < width; x++)
+            {
+                var qx = Math.Abs(x + 0.5f - centreX) - (halfWidth - radius);
+                // Signed distance to the outline: negative inside, positive outside.
+                var outside = MathF.Sqrt(MathF.Pow(Math.Max(qx, 0f), 2) + MathF.Pow(Math.Max(qy, 0f), 2));
+                var distance = outside + Math.Min(Math.Max(qx, qy), 0f) - radius;
+                float strength;
+                if (key.Inside)
+                {
+                    if (distance >= 0.5f) continue;
+                    // The light of the side edges and of the top and bottom ones, combined
+                    // the way two layers of light add up. Falling off with the distance to
+                    // the nearest edge instead creased the glow along the corner diagonals.
+                    var fromSide = Fall(halfWidth - Math.Abs(x + 0.5f - centreX), key.Blur);
+                    var fromTop = Fall(halfHeight - Math.Abs(y + 0.5f - centreY), key.Blur);
+                    var light = 1f - (1f - fromSide) * (1f - fromTop);
+                    // Fades out across the edge pixel instead of stopping at it.
+                    strength = key.Alpha * light * Math.Clamp(0.5f - distance, 0f, 1f);
+                }
+                else
+                {
+                    var reach = Math.Max(distance, 0f);
+                    if (reach >= key.Blur) continue;
+                    var fall = 1f - reach / key.Blur;
+                    strength = key.Alpha * 3.2f / 3f * fall * fall * fall;
+                }
+
+                var a = Math.Clamp((int)MathF.Round(strength * 255f), 0, 255);
+                if (a == 0) continue;
+                // Premultiplied, as the bitmap's format expects.
+                pixels[y * width + x] = (a << 24) | ((colour.R * a / 255) << 16) | ((colour.G * a / 255) << 8) | (colour.B * a / 255);
+            }
+        }
+
+        static float Fall(float depth, float blur)
+        {
+            var t = Math.Clamp(1f - Math.Max(depth, 0f) / blur, 0f, 1f);
+            return t * t;
+        }
+
+        var bitmap = new Bitmap(width, height, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
+        var data = bitmap.LockBits(new Rectangle(0, 0, width, height), System.Drawing.Imaging.ImageLockMode.WriteOnly, bitmap.PixelFormat);
+        try
+        {
+            for (var row = 0; row < height; row++)
+            {
+                System.Runtime.InteropServices.Marshal.Copy(pixels, row * width, data.Scan0 + row * data.Stride, width);
+            }
+        }
+        finally
+        {
+            bitmap.UnlockBits(data);
+        }
+
+        return bitmap;
     }
 
     /// <summary>The secondary button and the language list: dark, with a faint violet inner light.</summary>

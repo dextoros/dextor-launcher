@@ -1,7 +1,9 @@
 # Packaging
 
-This folder holds the Windows installer (`DexTor.Installer`, an MSI) and the setup
-bootstrapper (`DexTor.Setup`, a WiX Burn bundle), plus their themes and translations.
+This folder holds the Windows installer (`DexTor.Installer`, an MSI), the setup bootstrapper
+(`DexTor.Setup`, a WiX Burn bundle) with its theme and translations, and the manifest and
+tiles of the Microsoft Store package (`DexTor.Store`, built by
+`scripts\build-store-package.ps1`).
 
 ## Portable build
 
@@ -13,12 +15,12 @@ build-portable.bat 0.1.0
 
 The script builds a portable edition in the spirit of balenaEtcher Portable: **one**
 self-contained file, `out\DexTorOS-Portable-<version>-win-x64.exe`. The version is the first
-argument; it is also shown at the bottom of the wizard window and on the first line of the
-USB creation log.
+argument; the wizard shows it as a hint when the pointer rests on the DexTor OS logo, and it
+is on the first line of the USB creation log.
 
 Nothing is installed and .NET is not required; to remove the program, delete the file. The
-image cache, the QEMU runtime and the USB creation log live only in the user's temporary folder,
-`%LOCALAPPDATA%\DexTor`.
+image cache, the QEMU runtime and the USB creation log live only in the user's local
+application data folder, `%LOCALAPPDATA%\DexTor`.
 
 - Downloads resume: after a cancel, a dropped connection or closing the launcher, the part
   already downloaded is kept and the next download continues from there.
@@ -37,10 +39,11 @@ image cache, the QEMU runtime and the USB creation log live only in the user's t
 The USB provisioner is built into the same file: to write a drive, the launcher restarts itself
 with administrator rights in `--provision` mode. No second `.exe` is unpacked next to it.
 
-The administrator prompt (UAC) appears only when writing to the drive begins, and it cannot be
-avoided: writing to a physical disk on Windows requires administrator rights. The prompt names
-an "unknown publisher" until the file is signed with a code-signing certificate. The script
-signs the result itself when a certificate is configured:
+The administrator prompt (UAC) appears when writing to the drive begins, and when the user
+chooses to enable the Windows Hypervisor Platform. It cannot be avoided: writing to a physical
+disk and turning on a Windows feature both require administrator rights. The prompt names an
+"unknown publisher" until the file is signed with a code-signing certificate. The script signs
+the result itself when a certificate is configured:
 
 ```bat
 set DEXTOR_SIGN_THUMBPRINT=<certificate thumbprint in the store>
@@ -113,6 +116,17 @@ are never committed.
 The Start Menu and Desktop shortcuts are separate components with an HKCU registry key path,
 and `Launcher.exe` is a file component of its own; this resolves ICE38, ICE43, ICE57 and the
 cross-component reference ICE69. The application is still installed per machine.
+
+## Microsoft Store package
+
+DexTor OS is published in the Microsoft Store: <https://apps.microsoft.com/detail/9N23N99XWH3V>.
+
+`scripts\build-store-package.ps1` packs the same launcher as an MSIX package from
+`DexTor.Store`. The package carries the pinned QEMU payload in `runtime\qemu`, so the Store
+version never downloads QEMU, and the launcher in it does not update itself: new versions come
+through the Store. The script produces an unsigned upload; the Store signs the package it
+distributes. With `-TestSigned` it also builds a package signed with the local test
+certificate, for testing only.
 
 ## Setup appearance
 

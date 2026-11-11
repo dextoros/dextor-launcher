@@ -97,7 +97,7 @@ echo Portable launcher for the other laptop:
 echo   %OUTPUT_EXE%
 echo.
 echo Copy this one file and run it. Nothing is installed; delete the file to remove it.
-echo Windows asks for administrator permission only when the USB drive is written.
+echo Windows asks for administrator permission when the USB drive is written and when you choose to enable the Windows Hypervisor Platform.
 exit /b 0
 
 :NO_DOTNET

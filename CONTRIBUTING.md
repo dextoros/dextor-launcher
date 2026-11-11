@@ -8,8 +8,9 @@ the launcher does. Development happens in our own repository, and each release i
 ## What we welcome
 
 - **Bug reports** - [open a bug report](https://github.com/dextoros/dextor-launcher/issues/new?template=bug_report.yml).
-  The wizard can save a diagnostic report; attaching it helps a lot. Please remove anything
-  personal from it first.
+  The launcher keeps a journal of every USB creation and a log of every start of DexTor OS in
+  `%LOCALAPPDATA%\DexTor` (`Provisioning\journal` and `Sessions`); attaching the one from the
+  failed attempt helps a lot. Please remove anything personal from it first.
 - **Ideas and feature requests** - [suggest a feature](https://github.com/dextoros/dextor-launcher/issues/new?template=feature_request.yml).
 - **Questions about how something works** - open an issue; if the answer belongs in the
   documentation, we will add it there.

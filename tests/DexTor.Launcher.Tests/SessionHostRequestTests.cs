@@ -73,7 +73,7 @@ public sealed class SessionHostRequestTests : IDisposable
     [InlineData(@"two\\", @"""two\\\\""")]
     [InlineData("quo\"te", "\"quo\\\"te\"")]
     [InlineData(@"path\with space\", @"""path\with space\\""")]
-    [InlineData("юникод", "\"юникод\"")]
+    [InlineData("ünïcödé", "\"ünïcödé\"")]
     public void ArgumentBoundariesSurviveQuoting(string argument, string expected)
     {
         // The CRT's documented rules, which is what ProcessStartInfo.ArgumentList applied
@@ -199,6 +199,58 @@ public sealed class SessionHostRequestTests : IDisposable
         foreach (var language in DexTor.Application.LocaleCatalog.SupportedLanguages)
         {
             SessionHostService.ToGuestLocale(language).Should().NotBeNull($"the wizard offers {language}");
+        }
+    }
+
+    [Theory]
+    [InlineData("Eastern Standard Time", "America/New_York")]
+    [InlineData("W. Europe Standard Time", "Europe/Berlin")]
+    [InlineData("Pacific Standard Time", "America/Los_Angeles")]
+    [InlineData("UTC", "Etc/UTC")]
+    [InlineData("No Such Standard Time", null)]
+    [InlineData("", null)]
+    [InlineData(null, null)]
+    public void TheWindowsTimeZoneBecomesTheGuestsIanaZone(string? windowsId, string? expected)
+    {
+        SessionHostService.ToGuestTimeZone(windowsId).Should().Be(expected);
+    }
+
+    [Fact]
+    public void AHalfHourZoneIsResolvedUnderEitherOfItsIanaNames()
+    {
+        // ICU gives the legacy name on some Windows versions and the current one on others;
+        // whichever it is goes to the guest unchanged.
+        SessionHostService.ToGuestTimeZone("India Standard Time").Should().BeOneOf("Asia/Calcutta", "Asia/Kolkata");
+    }
+
+    [Theory]
+    [InlineData("W. Europe Standard Time", true)]
+    [InlineData("India Standard Time", true)]
+    [InlineData("No Such Standard Time", false)]
+    public void AnUnknownWindowsZoneLeavesTheParameterOutRatherThanFallingBackToUtc(string windowsId, bool passed)
+    {
+        var executable = CreatePayload("qemu-system-x86_64.exe", "q");
+        var iso = CreatePayload("system.img", "s");
+        var data = CreatePayload("data.img", "d");
+        var request = new DexTor.Contracts.SessionStartRequest(Guid.NewGuid(), iso, iso, data, new string('a', 64), 4096, 4,
+            GuestTimeZone: SessionHostService.ToGuestTimeZone(windowsId));
+
+        var arguments = QemuLaunchPlanBuilder.Build(
+            executable, new ResolvedSystemImage(iso, SystemImageLocation.TemporaryCache), request).Arguments;
+
+        arguments.Any(argument => argument.StartsWith("name=opt/org.dextoros/timezone,string=", StringComparison.Ordinal)).Should().Be(passed);
+        arguments.Should().NotContain("name=opt/org.dextoros/timezone,string=");
+        arguments.Should().NotContain("-rtc");
+    }
+
+    [Fact]
+    public void ThisComputersTimeZoneIsEitherAnIanaNameOrNotPassed()
+    {
+        var timeZone = SessionHostService.ToGuestTimeZone(TimeZoneInfo.Local.Id);
+
+        if (timeZone is not null)
+        {
+            timeZone.Should().MatchRegex("^[A-Za-z0-9_+/-]{1,64}$");
         }
     }
 

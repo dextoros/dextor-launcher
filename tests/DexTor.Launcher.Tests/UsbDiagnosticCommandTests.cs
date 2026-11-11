@@ -268,8 +268,8 @@ public sealed class UsbDiagnosticCommandTests : IDisposable
     [Fact]
     public void PathsWithSpacesAndNonAsciiCharactersArriveWhole()
     {
-        var awkwardDevice = Path.Combine(_root, "съёмный диск (test)", "DEXTOR", "storage");
-        var awkwardHost = Path.Combine(_root, "отчёты и логи");
+        var awkwardDevice = Path.Combine(_root, "Wechseldatenträger (test)", "DEXTOR", "storage");
+        var awkwardHost = Path.Combine(_root, "Berichte für später");
         Directory.CreateDirectory(awkwardDevice);
         Directory.CreateDirectory(awkwardHost);
         var image = Path.Combine(awkwardDevice, "data image.img");

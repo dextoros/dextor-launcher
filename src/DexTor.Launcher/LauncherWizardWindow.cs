@@ -237,8 +237,9 @@ internal sealed partial class LauncherWizardWindow : Form
         };
         root.Controls.Add(_contentHost);
 
-        // The footer: the brand line - with the version, which is how builds are told
-        // apart - the language list and the site link on the left, two buttons on the right.
+        // The footer: the brand line, the language list and the site link on the left, two
+        // buttons on the right. The version, which is how builds are told apart, is the
+        // logo's hover hint.
         _actionBar = new Panel
         {
             Name = "WizardActionBar",
@@ -400,6 +401,7 @@ internal sealed partial class LauncherWizardWindow : Form
             Margin = Padding.Empty
         };
         header.Controls.Add(logo);
+        LauncherBranding.ShowVersionOnHover(logo);
         // One quiet badge beside the wordmark: what the build is.
         var beta = new HeaderBadge { Name = "WizardBetaBadge", Text = _localizer.T("launcher.wizard.badge_beta"), Location = new Point(S(203.2f), S(20.8f)) };
         header.Controls.Add(beta);
@@ -435,8 +437,8 @@ internal sealed partial class LauncherWizardWindow : Form
             right = secondary.Left - S(12);
         }
 
-        // The brand line carries the version, so a long secondary action ("Cancel download")
-        // can reach the site link; then the link steps aside rather than run under it.
+        // A long secondary action ("Cancel download") can reach the site link; then the link
+        // steps aside rather than run under it.
         var linkFits = _siteLink.Right + S(16) <= right + S(12);
         if (_siteLink.Visible != linkFits) _siteLink.Visible = linkFits;
     }
@@ -1004,10 +1006,11 @@ internal sealed partial class LauncherWizardWindow : Form
 
     private void RenderImageInspectionFailed()
     {
-        // A signature that does not hold says so; anything else - no answer from the release
-        // index above all - reads as the download failing, which it is.
-        var key = _imageInspection?.ErrorMessageKey == LiveImagePreparationService.SignatureFailedKey
-            ? LiveImagePreparationService.SignatureFailedKey
+        // A signature that does not hold says so, and so does an address outside dextoros.com;
+        // anything else - no answer from the release index above all - reads as the download
+        // failing, which it is.
+        var key = _imageInspection?.ErrorMessageKey is LiveImagePreparationService.SignatureFailedKey or LiveImagePreparationService.UntrustedSourceKey
+            ? _imageInspection.ErrorMessageKey
             : LiveImagePreparationService.DownloadFailedKey;
         RenderImageFailure(new LiveImagePreparationResult(false, _imageInspection?.SourceUrl, null, null, 0,
             _imageInspection?.ErrorMessage, key));
@@ -1119,6 +1122,11 @@ internal sealed partial class LauncherWizardWindow : Form
                 title = _localizer.T("launcher.wizard.image.failed_checksum_title");
                 detail = _localizer.T("launcher.wizard.image.failed_checksum_detail");
                 action = _localizer.T("launcher.wizard.image.download_again");
+                break;
+            case LiveImagePreparationService.UntrustedSourceKey:
+                title = _localizer.T("launcher.wizard.image.failed_source_title");
+                detail = _localizer.T("launcher.wizard.image.failed_source_detail");
+                action = _localizer.T("launcher.wizard.image.retry");
                 break;
             case LiveImagePreparationService.NoSpaceKey:
                 var args = failure.ErrorMessageArgs ?? new Dictionary<string, string>();

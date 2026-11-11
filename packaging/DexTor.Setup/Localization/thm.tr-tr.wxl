@@ -18,8 +18,7 @@
   <String Id="HelpHeader" Value="Kurulum Yardımı" />
   <String Id="HelpText" Value="/install | /repair | /uninstall | /layout [klasör] - yükler, onarır, kaldırır veya&#xA;   paketin tam yerel kopyasını klasörde oluşturur. Varsayılan işlem yüklemedir.&#xA;&#xA;/passive | /quiet - soru sormadan en az arabirimi gösterir veya hiç arabirim&#xA;   göstermez. Varsayılan olarak arabirim ve tüm sorular gösterilir.&#xA;&#xA;/norestart - yeniden başlatmayı engeller. Varsayılan olarak yeniden başlatmadan önce sorulur.&#xA;/log log.txt - günlüğü belirtilen dosyaya yazar. Varsayılan olarak günlük %TEMP% içinde oluşturulur." />
   <String Id="HelpCloseButton" Value="&amp;Kapat" />
-  <String Id="InstallLicenseLinkText" Value="[WixBundleName] &lt;a href=&quot;#&quot;&gt;lisans koşulları&lt;/a&gt;." />
-  <String Id="InstallAcceptCheckbox" Value="Lisans koşullarını &amp;kabul ediyorum" />
+  <String Id="InstallLicenseLinkText" Value="Yükle düğmesine tıklayarak [WixBundleName] &lt;a href=&quot;#&quot;&gt;lisans koşullarını&lt;/a&gt; kabul etmiş olursunuz." />
   <String Id="InstallOptionsButton" Value="&amp;Seçenekler" />
   <String Id="InstallInstallButton" Value="&amp;Yükle" />
   <String Id="InstallCancelButton" Value="&amp;İptal" />

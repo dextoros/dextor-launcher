@@ -8,6 +8,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using DexTor.Contracts;
 using DexTor.Release;
 
 namespace DexTor.Launcher;
@@ -87,12 +88,19 @@ public sealed class LiveImagePreparationService
     /// <summary>The disk holding the cache has no room for the image ({drive}, {needed}, {available}).</summary>
     public const string NoSpaceKey = "launcher.create.live_image.prepare.failed_space";
 
+    /// <summary>
+    /// lastversion.link names an address the launcher may not download from - anything but
+    /// https://dextoros.com (see <see cref="ImageSourcePolicy"/>); nothing was requested from it.
+    /// </summary>
+    public const string UntrustedSourceKey = "launcher.create.live_image.prepare.failed_source";
+
     private readonly HttpClient _httpClient;
     private readonly ImageSigningKey _signingKey;
 
     public LiveImagePreparationService(HttpClient? httpClient = null, ImageSigningKey? signingKey = null)
     {
-        _httpClient = httpClient ?? new HttpClient();
+        // No redirect is followed: one could lead away from dextoros.com.
+        _httpClient = httpClient ?? new HttpClient(new SocketsHttpHandler { AllowAutoRedirect = false });
         _signingKey = signingKey ?? ImageSigningKey.Release;
     }
 
@@ -118,6 +126,11 @@ public sealed class LiveImagePreparationService
             if (sourceInfo is null)
             {
                 return CacheInspectionFailure(cacheRoot, "Could not resolve ISO source URL.");
+            }
+
+            if (UntrustedSourceMessage(sourceInfo) is { } untrusted)
+            {
+                return CacheInspectionFailure(cacheRoot, untrusted, sourceInfo.SourceUrl, UntrustedSourceKey);
             }
 
             progress?.Report(new LiveImagePreparationProgress(0, null, null, null, StageResolveIntegrity));
@@ -208,6 +221,18 @@ public sealed class LiveImagePreparationService
                     0,
                     "Could not resolve ISO source URL.",
                     DownloadFailedKey);
+            }
+
+            if (UntrustedSourceMessage(sourceInfo) is { } untrusted)
+            {
+                return new LiveImagePreparationResult(
+                    false,
+                    sourceInfo.SourceUrl,
+                    null,
+                    null,
+                    0,
+                    untrusted,
+                    UntrustedSourceKey);
             }
 
             progress?.Report(new LiveImagePreparationProgress(0, null, null, null, StageResolveIntegrity));
@@ -395,6 +420,13 @@ public sealed class LiveImagePreparationService
             message,
             messageKey ?? FailureMessageKey);
     }
+
+    /// <summary>Why this launcher will not download from <paramref name="source"/>, or null when it may.</summary>
+    /// <remarks>The .sha256 and .sig sit beside the image, on the same host, so one check covers all three.</remarks>
+    private static string? UntrustedSourceMessage(LiveImageSourceInfo source) =>
+        ImageSourcePolicy.IsTrusted(new Uri(source.SourceUrl))
+            ? null
+            : $"The image is offered from {source.SourceUrl}, not from https://{ImageSourcePolicy.TrustedHost}; nothing was downloaded.";
 
     private async Task<LiveImageSourceInfo?> ResolveSourceInfoAsync(string indexUrl, CancellationToken cancellationToken)
     {

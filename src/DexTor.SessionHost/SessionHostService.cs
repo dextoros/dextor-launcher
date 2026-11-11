@@ -236,6 +236,29 @@ public sealed class SessionHostService : ISessionHostService, IAsyncDisposable
         _ => null
     };
 
+    /// <summary>
+    /// The IANA name ("Europe/Berlin") of a Windows time zone ("W. Europe Standard Time"), handed
+    /// to the guest as fw_cfg opt/org.dextoros/timezone; null when Windows' zone has none, so
+    /// the guest keeps its own. Only the name is passed: the VM clock stays in UTC.
+    /// </summary>
+    internal static string? ToGuestTimeZone(string? windowsTimeZoneId) =>
+        !string.IsNullOrEmpty(windowsTimeZoneId)
+        && TimeZoneInfo.TryConvertWindowsIdToIanaId(windowsTimeZoneId, out var ianaId)
+        && !string.IsNullOrEmpty(ianaId)
+            ? ianaId
+            : null;
+
+    /// <summary>
+    /// The id of the zone Windows is set to now. .NET keeps the local zone for the life of
+    /// the process; it is read afresh for every VM start, so a zone changed while the
+    /// launcher was open reaches the next session.
+    /// </summary>
+    private static string CurrentWindowsTimeZoneId()
+    {
+        TimeZoneInfo.ClearCachedData();
+        return TimeZoneInfo.Local.Id;
+    }
+
     public SessionState State => _state;
 
     public string? LastError => _lastQmpError;
@@ -358,6 +381,7 @@ public sealed class SessionHostService : ISessionHostService, IAsyncDisposable
             var request = BuildStartRequest(usbPath) with
             {
                 GuestLocale = ToGuestLocale(GuestLanguage),
+                GuestTimeZone = ToGuestTimeZone(CurrentWindowsTimeZoneId()),
                 BuildChannel = DexTorBuildInfo.Channel,
                 DisplayWidth = Display?.Width,
                 DisplayHeight = Display?.Height,

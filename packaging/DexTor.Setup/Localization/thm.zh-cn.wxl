@@ -18,8 +18,7 @@
   <String Id="HelpHeader" Value="安装程序帮助" />
   <String Id="HelpText" Value="/install | /repair | /uninstall | /layout [目录] - 安装、修复、卸载，或在&#xA;   目录中创建捆绑包的完整本地副本。默认为安装。&#xA;&#xA;/passive | /quiet - 显示无提示的最小界面，或不显示任何界面&#xA;   和提示。默认显示界面和所有提示。&#xA;&#xA;/norestart - 禁止任何重新启动。默认在重新启动前提示。&#xA;/log log.txt - 将日志写入指定文件。默认在 %TEMP% 中创建日志文件。" />
   <String Id="HelpCloseButton" Value="关闭(&amp;C)" />
-  <String Id="InstallLicenseLinkText" Value="[WixBundleName] &lt;a href=&quot;#&quot;&gt;许可条款&lt;/a&gt;。" />
-  <String Id="InstallAcceptCheckbox" Value="我接受许可条款(&amp;A)" />
+  <String Id="InstallLicenseLinkText" Value="点击“安装”即表示你接受 [WixBundleName] &lt;a href=&quot;#&quot;&gt;许可条款&lt;/a&gt;。" />
   <String Id="InstallOptionsButton" Value="选项(&amp;O)" />
   <String Id="InstallInstallButton" Value="安装(&amp;I)" />
   <String Id="InstallCancelButton" Value="取消(&amp;C)" />

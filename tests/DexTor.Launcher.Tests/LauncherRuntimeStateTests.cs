@@ -104,13 +104,13 @@ public sealed class LauncherRuntimeStateTests
 
             // The hint and the language live side by side; clearing one leaves the other.
             LauncherRuntimeState.SetPrepareRebootHint();
-            LauncherRuntimeState.SaveLanguage("ru");
+            LauncherRuntimeState.SaveLanguage("de");
             LauncherRuntimeState.HasPrepareRebootHint().Should().BeTrue();
-            LauncherRuntimeState.ReadLanguage().Should().Be("ru");
+            LauncherRuntimeState.ReadLanguage().Should().Be("de");
             LauncherRuntimeState.ClearPrepareRebootHint();
             LauncherRuntimeState.HasPrepareRebootHint().Should().BeFalse();
-            LauncherRuntimeState.ReadLanguage().Should().Be("ru");
-            File.ReadAllText(path).Should().Be("language=ru");
+            LauncherRuntimeState.ReadLanguage().Should().Be("de");
+            File.ReadAllText(path).Should().Be("language=de");
         });
     }
 

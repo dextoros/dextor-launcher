@@ -137,8 +137,10 @@ public sealed class LauncherWindowLayoutTests
         var footer = window.Controls.Find("DexTorBrandFooter", true).Should().ContainSingle().Subject;
         var root = window.Controls.Find("LauncherRoot", true).Should().ContainSingle().Subject;
         root.Bottom.Should().BeLessThanOrEqualTo(footer.Top);
-        // The footer carries the running version, so an old copy can always be told from a new one.
-        footer.Controls.Cast<Control>().Should().Contain(control => control.Text == "launcher.brand.footer  ·  v" + LauncherBranding.DisplayVersion);
+        // The running version is the brand line's hover hint, so an old copy can always be told
+        // from a new one without the footer showing it.
+        footer.Controls.Cast<Control>().Should().Contain(control => control.Text == "launcher.brand.footer"
+            && control.AccessibleDescription == "DexTor OS for Windows v" + LauncherBranding.DisplayVersion);
         LauncherBranding.DisplayVersion.Should().NotBeNullOrWhiteSpace().And.NotContain("+");
         // The launcher's own version, not the entry assembly's: under a test host that was the
         // host's 17.11.0, and it ended up on the published screenshots.

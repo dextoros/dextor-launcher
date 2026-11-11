@@ -29,6 +29,9 @@ public static class QemuLaunchPlanBuilder
     public const string GuestLocaleFwCfgName = "opt/org.dextoros/locale";
     public const string BuildChannelFwCfgName = "opt/org.dextoros/channel";
 
+    /// <summary>The Windows time zone as an IANA name, "Europe/Berlin". The VM clock stays in UTC.</summary>
+    public const string GuestTimeZoneFwCfgName = "opt/org.dextoros/timezone";
+
     /// <summary>The guest's screen, "2560x1377", and the Windows scale, "150" - for GRUB, the splash and the desktop.</summary>
     public const string DisplayFwCfgName = "opt/org.dextoros/display";
     public const string ScaleFwCfgName = "opt/org.dextoros/scale";
@@ -129,8 +132,9 @@ public static class QemuLaunchPlanBuilder
     }
 
     /// <summary>
-    /// The wizard's language and the build channel, as fw_cfg strings. A value that is not
-    /// a plain token is left out rather than escaped: QEMU splits options on commas.
+    /// The wizard's language, the build channel and the Windows time zone, as fw_cfg strings.
+    /// A value that is not a plain token is left out rather than escaped: QEMU splits options
+    /// on commas.
     /// </summary>
     private static IEnumerable<string> GuestSettingArguments(SessionStartRequest request)
     {
@@ -146,7 +150,25 @@ public static class QemuLaunchPlanBuilder
                 yield return $"name={name},string={value}";
             }
         }
+
+        // Only the zone's name goes to the guest; there is no -rtc here, so the VM clock
+        // stays in UTC and the guest applies the zone itself.
+        if (IsTimeZoneName(request.GuestTimeZone))
+        {
+            yield return "-fw_cfg";
+            yield return $"name={GuestTimeZoneFwCfgName},string={request.GuestTimeZone}";
+        }
     }
+
+    /// <summary>
+    /// An IANA zone name has a slash ("Europe/Berlin") and may have a plus ("Etc/GMT+5"), so
+    /// it is not a plain token: printable ASCII without spaces, at most 64 bytes, no comma -
+    /// which also rules out CR and LF. Anything else is left out, never trimmed or cleaned.
+    /// </summary>
+    private static bool IsTimeZoneName(string? value) =>
+        !string.IsNullOrEmpty(value)
+        && value.Length <= 64
+        && value.All(character => character is > ' ' and < '\u007f' and not ',');
 
     /// <summary>
     /// The guest's first mode as the screen it will be shown on: virtio-vga's preferred mode

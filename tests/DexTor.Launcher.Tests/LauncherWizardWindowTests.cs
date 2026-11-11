@@ -301,6 +301,61 @@ public sealed class LauncherWizardWindowTests
     }
 
     [Fact]
+    public void GoButtonGlowFadesInAndOutAndTurnsBackFromWhereItIs()
+    {
+        using var window = new LauncherWizardWindow(new TestLocalizer(), CreateDependencies());
+        window.CreateControl();
+        var button = window.Controls.Find("WizardPrimaryButton", true).Single();
+        _ = button.Handle;
+        var glowLevel = button.GetType().GetProperty("GlowLevel", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        float Level() => (float)glowLevel.GetValue(button)!;
+
+        // Samples the glow until it settles at target, or a second has passed.
+        List<(long Ms, float Level)> Follow(float target)
+        {
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            var samples = new List<(long, float)>();
+            while (clock.ElapsedMilliseconds < 1000)
+            {
+                System.Windows.Forms.Application.DoEvents();
+                samples.Add((clock.ElapsedMilliseconds, Level()));
+                if (Level() == target) break;
+                Thread.Sleep(2);
+            }
+
+            return samples;
+        }
+
+        WizardScreenshots.Hover(button, true);
+        Level().Should().Be(0f, "the glow comes up over time, not at once");
+        var fadeIn = Follow(1f);
+        fadeIn[^1].Level.Should().Be(1f);
+        // 180 ms, give or take a tick of the system timer.
+        fadeIn[^1].Ms.Should().BeInRange(150, 260);
+        fadeIn.Select(sample => sample.Level).Should().BeInAscendingOrder();
+        fadeIn.Count(sample => sample.Level is > 0f and < 1f).Should().BeGreaterThan(0);
+
+        // Left half-way through the fade-out, then entered again: no jump either way.
+        WizardScreenshots.Hover(button, false);
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        while (clock.ElapsedMilliseconds < 60) { System.Windows.Forms.Application.DoEvents(); Thread.Sleep(2); }
+        var halfWay = Level();
+        halfWay.Should().BeInRange(0.05f, 0.95f);
+        WizardScreenshots.Hover(button, true);
+        Level().Should().Be(halfWay);
+        var back = Follow(1f);
+        back.Select(sample => sample.Level).Should().BeInAscendingOrder();
+        back[0].Level.Should().BeLessThan(halfWay + 0.3f);
+        back[^1].Level.Should().Be(1f);
+
+        WizardScreenshots.Hover(button, false);
+        var fadeOut = Follow(0f);
+        fadeOut[^1].Level.Should().Be(0f);
+        fadeOut[^1].Ms.Should().BeInRange(150, 260);
+        fadeOut.Select(sample => sample.Level).Should().BeInDescendingOrder();
+    }
+
+    [Fact]
     public void OpensOnFriendlyIntroWithBrandingAndAllStepsVisible()
     {
         using var window = new LauncherWizardWindow(new TestLocalizer(), CreateDependencies());
@@ -313,6 +368,9 @@ public sealed class LauncherWizardWindowTests
         window.FormBorderStyle.Should().Be(FormBorderStyle.FixedSingle);
         window.Controls.Find("WizardLogo", true).Should().ContainSingle()
             .Which.Should().BeOfType<PictureBox>().Which.Image.Should().NotBeNull();
+        // The version is the logo's hover hint, not footer text.
+        window.Controls.Find("WizardLogo", true).Single().AccessibleDescription.Should().Be(LauncherBranding.VersionHint);
+        window.Controls.Find("DexTorBrandCopyright", true).Single().Text.Should().NotContain(LauncherBranding.DisplayVersion);
         window.Icon.Should().NotBeNull();
         var header = window.Controls.Find("WizardHeader", true).Should().ContainSingle().Subject;
         var stepper = window.Controls.Find("WizardStepper", true).Should().ContainSingle().Subject;

@@ -40,16 +40,30 @@ function Save($bitmap, $g, [string]$name) {
 }
 
 # Inner glow along a rounded rectangle: inset 0 0 <blur> <colour> at <alpha>, as CSS draws it.
+# One shape, worked out per pixel as the launcher's go button does it (WizardDesign.RenderGlow):
+# the light of the side edges and of the top and bottom ones combined, cut to the rounded
+# outline. Stacked rings met in visible seams along the corner diagonals.
 function Add-InnerGlow($g, [double]$w, [double]$h, [double]$r, [Drawing.Color]$colour, [int]$blur, [double]$alpha) {
-    for ($step = 0; $step -lt $blur; $step++) {
-        $t = 1 - $step / [double]$blur
-        $a = [int][Math]::Round(255 * $alpha * $t * $t)
-        if ($a -le 0) { continue }
-        $inset = $step + 0.5
-        $ring = New-Rounded $inset $inset ($w - 1 - 2 * $inset) ($h - 1 - 2 * $inset) ([Math]::Max(1, $r - $inset))
-        $pen = [Drawing.Pen]::new([Drawing.Color]::FromArgb($a, $colour), 1.2)
-        $g.DrawPath($pen, $ring); $pen.Dispose(); $ring.Dispose()
+    $layer = [Drawing.Bitmap]::new([int]$w, [int]$h)
+    $halfW = $w / 2; $halfH = $h / 2
+    $r = [Math]::Min($r, [Math]::Min($halfW, $halfH))
+    for ($y = 0; $y -lt $h; $y++) {
+        $dy = [Math]::Abs($y + 0.5 - $halfH)
+        $qy = $dy - ($halfH - $r)
+        $fromTop = [Math]::Pow([Math]::Max(0.0, 1 - ($halfH - $dy) / $blur), 2)
+        for ($x = 0; $x -lt $w; $x++) {
+            $dx = [Math]::Abs($x + 0.5 - $halfW)
+            $qx = $dx - ($halfW - $r)
+            $distance = [Math]::Sqrt([Math]::Pow([Math]::Max($qx, 0), 2) + [Math]::Pow([Math]::Max($qy, 0), 2)) + [Math]::Min([Math]::Max($qx, $qy), 0) - $r
+            if ($distance -ge 0.5) { continue }
+            $fromSide = [Math]::Pow([Math]::Max(0.0, 1 - ($halfW - $dx) / $blur), 2)
+            $light = 1 - (1 - $fromSide) * (1 - $fromTop)
+            $a = [int][Math]::Round(255 * $alpha * $light * [Math]::Min(1.0, 0.5 - $distance))
+            if ($a -gt 0) { $layer.SetPixel($x, $y, [Drawing.Color]::FromArgb($a, $colour)) }
+        }
     }
+    $g.DrawImage($layer, [Drawing.Rectangle]::new(0, 0, [int]$w, [int]$h))
+    $layer.Dispose()
 }
 
 # The keyboard focus. thmutil shows a focused button with its focus image instead of the
